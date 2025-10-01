@@ -1,0 +1,178 @@
+{
+  "bundles": [
+    {
+      "imageUrl": "https://commons.wikimedia.org/wiki/File:Shard_and_City_of_London_skyline_from_Greenwich.jpg",
+      "title": "London: Psychedelia & Deep-Listening Weekend (Pitchfork + Royal Albert Hall)",
+      "description": "A five-day, music-forward London stay tuned to atmospheric indie and adventurous psych-rock — a curated run that combines Pitchfork’s exploratory festival programming with King Gizzard’s genre-bending Royal Albert Hall orchestral night, plus art and neighborhood culinary picks.",
+      "city": "London",
+      "dateRange": {
+        "startDate": "2025-11-03",
+        "endDate": "2025-11-08"
+      },
+      "keyEvents": [
+        {
+          "title": "Pitchfork Music Festival London (city-wide showcases, Nov 4–8, 2025)",
+          "fullDescription": "Pitchfork’s London edition has become a modern-minded, mid-size festival that favours adventurous indie, art-pop and left-field electronic sounds — exactly the kinds of sets that resonate with a listener whose center of gravity is indie/psychedelic rock with dreamy textures. Across venues (Roundhouse, Barbican, Royal Festival Hall and more) Pitchfork programs intimate headliners, exploratory solo projects and late-night club takeovers that prioritize atmosphere and striking light design over arena spectacle. Expect curated bills where guitar-driven psych sits beside synth-based dream pop and tasteful electronic sets, so every night can feel like discovering a new favorite.\n\nThis festival run is an ideal anchor for your trip because it packs multiple, short-hop gigs into a single week: daytime showcases, evening headline sets, and smaller secret shows — which suits your live preference for mid-sized venues with memorable production and immersive sound. The festival’s programming typically includes acts with the melodic, psychedelic leanings you love, plus adventurous outliers to broaden your palette.\n\nPractical note: Pitchfork London runs across several venues and nights, which makes it easy to assemble a 4–6 day itinerary of compelling sets and gallery openings. Buy through the festival/venue links for the fairest ticketing routes and look for late announcements of pop-up sets or label showcases — those are frequently the best matches for your dreamy, guitar-forward taste.",
+          "shortDescription": "A city‑wide, curator‑led festival across venues (Roundhouse, Barbican, Royal Festival Hall), focused on adventurous indie and experimental pop.",
+          "interestType": "concerts",
+          "dateRange": {
+            "startDate": "2025-11-04",
+            "endDate": "2025-11-08"
+          },
+          "eventWebsite": "https://pitchfork.com"
+        },
+        {
+          "title": "King Gizzard & the Lizard Wizard — Royal Albert Hall (Orchestral show) — Nov 4, 2025",
+          "fullDescription": "King Gizzard’s late‑2025 run is one of those genuinely surprising, genre‑bending projects: they’re splitting shows between modular ‘rave’ sets and orchestral performances — and the Royal Albert Hall orchestral night is a showpiece. For a listener who loves Tame Impala, Khruangbin and other psychedelic textures, this is a rare opportunity to see a beloved psych-rock collective reimagine their catalogue with classical forces and immersive staging. The result is both a body‑moving rave energy and a lush, cinematic palette — a direct match for your taste in melodic songwriting wrapped in experimental production.\n\nWhy this fits you: your profile values mid-sized, atmospheric gigs and psychedelic light design — the Royal Albert Hall night delivers on all of that while giving you a memorable, once‑only arrangement (the orchestral collaboration is a special, one‑off performance within the tour). Pair the concert night with festival performances earlier in the week to experience both their intimate ‘rave’ shows and the high‑concept orchestral set.\n\nRecommended discovery (artist suggestions): because you love melodic psychedelia with strong arrangements, consider exploring Temples (recommended — modern psych-pop band with classic 60s sensibility; try Shelter Song). Temples offer that warm, melodic counterpoint to the Gizzard experience and read like a tasteful next step for someone who enjoys lush textures and jangly vocal hooks. Shelter Song (Temples) — https://templesofficialuk.bandcamp.com/track/shelter-song\n\nThis performance at the Royal Albert Hall is presented as a special orchestral programme; reserve on the venue/official listing for authentic tickets and to avoid secondary marketplaces.",
+          "shortDescription": "King Gizzard’s special orchestral evening at the Royal Albert Hall — part of their 2025 UK/EU run; a psychedelic catalogue reworked with symphonic forces.",
+          "interestType": "concerts",
+          "dateRange": {
+            "startDate": "2025-11-04",
+            "endDate": "2025-11-04"
+          },
+          "eventWebsite": "https://cgsinfonia.co.uk/events/king-gizzard/"
+        }
+      ],
+      "minorEvents": [
+        {
+          "title": "Barbican / Roundhouse evening programme (contemporary art & late-night live shows)",
+          "fullDescription": "London’s Barbican and Roundhouse both run evening exhibitions and cross-disciplinary performance programmes during the autumn season. They pair perfectly with late-night festival sets: after an atmospheric headline, slip into a small-scale experimental performance, film screening, or gallery talk. These venues curate smart lineups that attract a creative crowd and deliver the kind of immersive audio-visual experiences you enjoy.\n\nSpend an evening at the Barbican’s gallery installations or a Roundhouse performance and you’ll find the same attention to light, texture and sonic detail that makes your favorite live shows memorable. Both are within easy transport links to the festival venues, making them convenient additions to a 4–6 day London trip built around discovery.\n\nTip: check Barbican and Roundhouse listings during your travel dates for special late-night events or label showcases tied to Pitchfork’s programming.",
+          "shortDescription": "Evening programmes at Barbican and Roundhouse — exhibitions and cross-disciplinary performances that pair well with festival nights.",
+          "interestType": "artDesign",
+          "dateRange": {
+            "startDate": "2025-11-03",
+            "endDate": "2025-11-08"
+          },
+          "eventWebsite": "https://www.barbican.org.uk"
+        },
+        {
+          "title": "London small-plate tasting route (Borough Market / Bermondsey pop-ups)",
+          "fullDescription": "London’s culinary scene becomes especially good for short, intense tasting runs in November: Borough Market vendors and South‑East London pop-ups stage limited‑run stalls and chef collaborations. For a traveler who enjoys local culture and food-focused moments, a guided small-plate walk or market booking makes for a warming, textural contrast to late-night sets.\n\nWe’ve curated this as a low‑commitment, high‑flavour local event: think seasonal British‑inspired snacks and artisanal producers — a great complement to the festival evenings and gallery afternoons. Book ahead for popular traders and reserve a table where possible.\n\nThis local culinary run is an easy, fall-ready pairing for an indie/psych weekend — moody lights, tactile flavours, and friendly market culture.",
+          "shortDescription": "A curated small‑plate route through Borough Market and Bermondsey pop-ups — seasonal, local and ideal between shows.",
+          "interestType": "culinary",
+          "dateRange": {
+            "startDate": "2025-11-03",
+            "endDate": "2025-11-08"
+          },
+          "eventWebsite": "https://boroughmarket.org.uk"
+        }
+      ]
+    },
+    {
+      "imageUrl": "https://commons.wikimedia.org/wiki/File:Ha%27penny_Bridge_in_Dublin.jpg",
+      "title": "Dublin: Rugby, Two Nights of Mac DeMarco & Irish Nights",
+      "description": "A compact 6‑day trip that pairs a major Autumn Nations rugby test at the Aviva with two nights of Mac DeMarco’s distinctly intimate, lo‑fi‑turned‑stadium vibe — plus local festive markets and late-night neighbourhood music. This is for indie‑leaning listeners who want singular live nights and an authentic Dublin mix of sport, music and culinary warmth.",
+      "city": "Dublin",
+      "dateRange": {
+        "startDate": "2025-11-14",
+        "endDate": "2025-11-19"
+      },
+      "keyEvents": [
+        {
+          "title": "Autumn Nations Test — Ireland v Australia — Aviva Stadium, Nov 15, 2025",
+          "fullDescription": "Ireland’s Autumn Nations fixtures are among Europe’s most electric sporting events. The Aviva Stadium’s atmosphere on a November test match is visceral: scarf‑clad crowds, rousing anthems, and the kind of communal energy that pairs perfectly with a travel weekend built around live experiences. For a traveler whose passions include sports and local culture, a home international rugby test is an unmatched way to see local life up close — the pre- and post-match pub scene alone is a cultural masterclass.\n\nWhy include this: this fixture (Ireland v Australia on Nov 15) sits centrally inside your requested date window and serves as a thrilling cultural counterpoint to consecutive concert nights. If you like communal, chant-driven, high‑energy events, a rugby test is a must; it also gives your evenings extra electricity before the Mac DeMarco shows.\n\nPractical tip: buy tickets via the Aviva Stadium official site; arrive early to soak in the pre‑match traditions and tie the experience to neighbourhood gastronomy (try an oyster or warm stew in a nearby pub).",
+          "shortDescription": "Autumn Nations rugby: Ireland v Australia at Aviva Stadium — a high‑octane, culturally rich match day.",
+          "interestType": "sports",
+          "dateRange": {
+            "startDate": "2025-11-15",
+            "endDate": "2025-11-15"
+          },
+          "eventWebsite": "https://www.avivastadium.ie/whats-on"
+        },
+        {
+          "title": "Mac DeMarco — The National Stadium — Nov 17 & Nov 18, 2025 (two nights)",
+          "fullDescription": "Mac DeMarco’s warm, slightly woozy stage persona and guitar‑driven dream pop fits beautifully with your listening profile: lush, jangly, nostalgic indie that favours intimate feeling even in larger rooms. These Dublin dates (Nov 17 and 18) give you two nights to experience his new live material alongside the sun‑lit hits that likely anchor your playlists.\n\nFrom a trip perspective, two consecutive Mac DeMarco nights let you enjoy different set‑shapes (an energetic first night, a more relaxed second night), and they slot perfectly after the Aviva match for a varied 4–6 day stay. The National Stadium has a raw, live‑music intimacy that translates Mac’s studio warmth into friendly, sing‑along evenings — a direct match with your appetite for mid‑sized, atmospheric gigs rather than arena spectacle.\n\nRecommended discovery (artist suggestion): as you enjoy Mac’s mix of off‑kilter pop and dreaminess, consider exploring Connan Mockasin (recommended — a New Zealand-born psych-pop auteur with surreal, languid textures; see “Forever Dolphin Love”) and Temples (recommended — modern psych-pop with 60s sensibility; see “Shelter Song”). These artists sit close to your taste and make elegant sidebar listening between nights. Connan Mockasin — Forever Dolphin Love (video): https://vimeo.com/25763929  • Temples — Shelter Song (Bandcamp): https://templesofficialuk.bandcamp.com/track/shelter-song\n\nBook Mac DeMarco tickets via the National Stadium/official box office to avoid inflated secondary sellers.",
+          "shortDescription": "Two consecutive nights with Mac DeMarco at Dublin’s National Stadium — intimate, jangly, dream‑tinged indie across back‑to‑back shows.",
+          "interestType": "concerts",
+          "dateRange": {
+            "startDate": "2025-11-17",
+            "endDate": "2025-11-18"
+          },
+          "eventWebsite": "https://www.thenationalstadium.ie/"
+        }
+      ],
+      "minorEvents": [
+        {
+          "title": "Autumn Nations — match day neighbourhood walk & pub tasting (Ballsbridge & Grand Canal)",
+          "fullDescription": "Pair the Aviva match day with a guided neighbourhood walk through Ballsbridge and the Grand Canal area — short stops at classic Dublin pubs and a curated tasting of Irish cheeses and small plates. This is a small, local‑culture moment designed to connect you with Dubliners’ match rituals and to layer food and community onto the sporting highlight.\n\nWhy it works: your profile enjoys local cultural texture and culinary variety; this is a low‑effort way to blend stadium energy with cozy, memorable food moments. Book a guide or a small‑group experience if you prefer a structured, time‑efficient outing.",
+          "shortDescription": "Pre/post‑match guided walk with pub stops and small‑plate tastings around Ballsbridge and Grand Canal.",
+          "interestType": "localCulture",
+          "dateRange": {
+            "startDate": "2025-11-15",
+            "endDate": "2025-11-15"
+          },
+          "eventWebsite": "https://visitdublin.com"
+        },
+        {
+          "title": "The Horrors — National Stadium — Nov 19, 2025 (late‑week club/rock night)",
+          "fullDescription": "The Horrors bring a darker, shoegaze‑tinged palette that can make an evocative post‑Mac DeMarco night. If you’re collecting contrasts — the sunny, laid‑back Mac shows followed by a moodier, more cinematic rock set — this late‑week date fills that slot and keeps the live momentum rolling.\n\nThis kind of pairing (two nights of different indie moods) is ideal for deep music fans: you get polished, melodic pop and then an edgier, texture‑driven performance to round out the trip. Confirm tickets via the venue’s official listings to secure the best value.",
+          "shortDescription": "A darker, shoegaze‑tinged rock show — a contrast night after two Mac DeMarco shows.",
+          "interestType": "concerts",
+          "dateRange": {
+            "startDate": "2025-11-19",
+            "endDate": "2025-11-19"
+          },
+          "eventWebsite": "https://www.thenationalstadium.ie/"
+        }
+      ]
+    },
+    {
+      "imageUrl": "https://commons.wikimedia.org/wiki/File:Berlin_Brandenburg_Gate_%2828481319740%29.jpg",
+      "title": "Berlin: Art, Winter Lights & Market Nights (museum shows + WeihnachtsZauber)",
+      "description": "A designed December (or late‑November) city break that pairs Berlin’s contemplative contemporary art program with seasonal light and food culture. Think museum-level art experiences during the day and the warmth of Berlin’s Christmas markets by night — the perfect slow, atmospheric complement to the indie/psychedelic sensibility you favor.",
+      "city": "Berlin",
+      "dateRange": {
+        "startDate": "2025-11-24",
+        "endDate": "2025-11-28"
+      },
+      "keyEvents": [
+        {
+          "title": "WeihnachtsZauber Christmas Market at Gendarmenmarkt — Nov 24 to Dec 31, 2025 (visit during Nov 24–28)",
+          "fullDescription": "Berlin’s WeihnachtsZauber on Gendarmenmarkt is one of Europe’s most elegantly staged Christmas markets: high‑quality artisans, heated dining tents, and a curated programme of performances and craft demonstrations. For a traveler who appreciates design and tactile experiences, the market’s focus on craft — hand‑made gifts, fine food stalls, and atmospheric light design — offers the season’s most photogenic, sensory-rich evenings.\n\nWhy this fits your trip: your profile gravitates toward atmospheric, dreamy live experiences and well-crafted sensory environments. Gendarmenmarkt’s heated tents and careful vendor selection create a slightly elevated market atmosphere — ideal for slow evening strolls between museum visits and contemporary concerts in the city.\n\nPractical note: the market runs Nov 24–Dec 31, which matches a late‑November trip window. It’s a strong local‑culture and culinary anchor for a 4–6 day stay that centers on art, design, and warm, late‑night food moments. Official info and entry details are available at the city/market site.",
+          "shortDescription": "Berlin’s celebrated, design‑forward Christmas market at Gendarmenmarkt — artisan stalls, heated dining tents and festive lights.",
+          "interestType": "localCulture",
+          "dateRange": {
+            "startDate": "2025-11-24",
+            "endDate": "2025-12-31"
+          },
+          "eventWebsite": "https://www.berlin.de/en/christmas-markets/3235772-3230598-christmas-market-at-gendarmenmarkt.en.html"
+        },
+        {
+          "title": "Hamburger Bahnhof — major contemporary exhibition programme (e.g., Delcy Morelos: Madre, through Jan 2026) — visit during Nov 24–28",
+          "fullDescription": "Hamburger Bahnhof (Nationalgalerie der Gegenwart) is one of Berlin’s great contemporary art venues, and its late‑autumn programme often features ambitious, installation-driven exhibitions and performance works. The museum’s season includes artists who experiment with sound, spatial design and participatory elements — a natural fit if you like immersive, atmospheric experiences that resonate with your taste for lush textures and experimental arrangements.\n\nWhy this works for you: the museum’s intersection of visual art and sound-based installations will feel familiar to someone who loves concerts with atmospheric light design and textural sonic detail. Spending an afternoon here (paired with a museum cafe or a neighbourhood gallery crawl) deepens the trip’s art‑and‑design axis without needing a long travel day.\n\nPlan: reserve timed-entry tickets where available and check public programmes for evening performances or artist talks during your stay.",
+          "shortDescription": "Hamburger Bahnhof’s contemporary programmes and large-scale installations — an art & design anchor for your Berlin visit.",
+          "interestType": "artDesign",
+          "dateRange": {
+            "startDate": "2025-07-11",
+            "endDate": "2026-01-25"
+          },
+          "eventWebsite": "https://www.smb.museum/en/museums-institutions/hamburger-bahnhof/home/"
+        }
+      ],
+      "minorEvents": [
+        {
+          "title": "Winter World at Potsdamer Platz — ice rink & light installations (Oct 31–Dec 31, 2025)",
+          "fullDescription": "Potsdamer Platz’s Winter World blends winter sports, ice rinks and playful light installations — an informal, design‑minded winter playground that pairs beautifully with museum days. Walk the light trails, grab a mulled‑wine style Glühwein, and watch local DJs or small live acts that occasionally perform on site.\n\nAs a minor event, it’s a relaxed, convivial counterpoint to the museum hours: quick, sensory, and very Berlin. It’s particularly enjoyable for evenings after an exhibition when you want to keep the city’s seasonal mood but in a lighter, more social setting.",
+          "shortDescription": "Potsdamer Platz Winter World — skating, lights and seasonal food stalls in a playful urban setting.",
+          "interestType": "localCulture",
+          "dateRange": {
+            "startDate": "2025-10-31",
+            "endDate": "2025-12-31"
+          },
+          "eventWebsite": "https://www.visitberlin.de/en/event/winter-world-potsdamer-platz"
+        },
+        {
+          "title": "Selected evening at a Neukölln/ Kreuzberg indie club — curated local gig or DJ set",
+          "fullDescription": "Berlin’s club and independent‑venue scene is a living organism: small, intense shows and late DJ sets frequently appear on short notice. For a music fan who prefers mid‑sized, atmospheric nights, a curated indie‑club evening in Kreuzberg or Neukölln — the city’s epicentres for adventurous sound — is a perfect late‑night complement to museum days and market evenings.\n\nTip: check local listings a week out for special label nights or intimate headline shows that match your psych‑indie taste — these often feature exceptional light design and immersive sound despite compact venues.",
+          "shortDescription": "An intimate indie‑club night in Kreuzberg/Neukölln — small‑venue discovery tuned to psychedelic/indie sensibilities.",
+          "interestType": "concerts",
+          "dateRange": {
+            "startDate": "2025-11-24",
+            "endDate": "2025-11-28"
+          },
+          "eventWebsite": "https://www.berlinconcerts.de"
+        }
+      ]
+    }
+  ]
+}

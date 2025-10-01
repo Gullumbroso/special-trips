@@ -1,0 +1,11 @@
+## The SpecialTrips Story
+
+On a trip to South Africa, my wife and I crossed into Eswatini. By chance, we stumbled into a local music festival, found last-minute tickets, and spent the night dancing with strangers. Out of 30 days of safari, beaches, and sightseeing, that unexpected moment was the highlight — the story we still tell our friends.
+
+Since then, we’ve wished we could plan trips around experiences like that. But it’s almost impossible. There’s no single place to discover what’s happening in a city during the exact week you’re free. Travel tools start with flights and hotels. AI trip planners spit out generic “5 days in Paris” itineraries. Nobody starts with the real reason we travel: the concerts, the art, the design weeks, the food festivals, the matches that matter.
+
+That’s why we built SpecialTrips. We built it for people that crave delightful, unique events when traveling, like we do. Instead of asking where you want to go, we start with what you love. You set your interests — music, sports, art, design, food, local culture — and connect your Spotify if you like. We surface 4–8 day trips built around two or three events you actually care about, then fill in the gaps with places, neighborhoods, and restaurants that match your taste. If you already have a planned trip, SpecialTrips will help you find interesting events you’ll love.
+
+Using SpecialTrips should feel inspiring in itself. The app is crafted to be both beautiful and intelligent — presenting events in a way that celebrates their visual identity and uniqueness. At times it’s simple and straightforward, and at others flexible and rich, blending classic UI with conversational AI the right way. It will make you feel excited to explore the world’s richness and beauty.
+
+SpecialTrips is designed as a little gem in the world of travel apps — crafted, beautiful, and genuinely useful. It helps you discover those rare, serendipitous alignments of passions at the same place at the same time. Trips that feel like they were made for you. Trips you’ll never forget — and your friends will wish they’d found first.

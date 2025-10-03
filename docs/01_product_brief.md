@@ -5,7 +5,8 @@ Deliver a lean v1 of SpecialTrips that validates the core hypothesis:
 
 ## 2. Capabilities
 - Capturing user preferences (events, music, date range).
-- Generating a list of suggested bundles (event-first trips) using the **ChatGPT 5 mini** model, via the **OpenAI api**.
+- Generating a list of suggested bundles (event-first trips) using the **ChatGPT 5 mini** model, via the **OpenAI api**. 
+**FOR NOW WE WILL START WITH docs/04_data_samples.md AS DATA SAMPLE.**
 - Allowing users to explore the bundles details.
 - Allowing users to edit their preferences and regenerate bundles.
 

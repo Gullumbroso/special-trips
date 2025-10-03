@@ -1,0 +1,54 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import { usePreferences } from "@/lib/context/PreferencesContext";
+import Link from "next/link";
+
+export default function TripTimeframePage() {
+  const router = useRouter();
+  const { preferences, updateTimeframe } = usePreferences();
+  const [timeframe, setTimeframe] = useState(preferences.timeframe || "");
+
+  const handleNext = () => {
+    updateTimeframe(timeframe);
+    router.push("/other_details");
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col px-6 py-8">
+      {/* Logo */}
+      <div className="flex items-center gap-2 mb-12">
+        <div className="text-3xl">🍀</div>
+        <span className="text-xl font-bold">SpecialTrips</span>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 flex flex-col max-w-md">
+        <h1 className="font-serif text-4xl font-bold mb-8">
+          When are you planning to travel?
+        </h1>
+
+        <Input
+          value={timeframe}
+          onChange={(e) => setTimeframe(e.target.value)}
+          placeholder='e.g., "November 2025", "Spring 2026", "next 3 months"'
+          className="mb-12"
+        />
+
+        <div className="flex gap-3">
+          <Link href="/music_taste" className="flex-shrink-0">
+            <Button variant="secondary" fullWidth={false} className="px-8">
+              Back
+            </Button>
+          </Link>
+          <Button onClick={handleNext} disabled={!timeframe.trim()}>
+            Next →
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,13 +1,14 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { UserPreferences, InterestType, TripBundle } from "../types";
+import { UserPreferences, InterestType, TripBundle, SpotifyMusicProfile } from "../types";
 
 interface PreferencesContextType {
   preferences: UserPreferences;
   bundles: TripBundle[] | null;
   updateInterests: (interests: InterestType[]) => void;
   updateMusicProfile: (profile: string) => void;
+  updateSpotifyMusicProfile: (spotifyProfile: SpotifyMusicProfile) => void;
   updateTimeframe: (timeframe: string) => void;
   updateOtherPreferences: (prefs: string) => void;
   setBundles: (bundles: TripBundle[]) => void;
@@ -74,6 +75,10 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     setPreferences((prev) => ({ ...prev, musicProfile: profile }));
   };
 
+  const updateSpotifyMusicProfile = (spotifyProfile: SpotifyMusicProfile) => {
+    setPreferences((prev) => ({ ...prev, spotifyMusicProfile: spotifyProfile }));
+  };
+
   const updateTimeframe = (timeframe: string) => {
     setPreferences((prev) => ({ ...prev, timeframe }));
   };
@@ -100,6 +105,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
         bundles,
         updateInterests,
         updateMusicProfile,
+        updateSpotifyMusicProfile,
         updateTimeframe,
         updateOtherPreferences,
         setBundles,

@@ -52,4 +52,34 @@ export interface UserPreferences {
    * Example: "Should not be too cold, focus on big events, budget friendly, I like history ..."
    */
   otherPreferences?: string;
+
+  /**
+   * Spotify music profile data (if user connected Spotify)
+   */
+  spotifyMusicProfile?: SpotifyMusicProfile;
+}
+
+/**
+ * Spotify Music Profile -- relevant if user connects with Spotify
+ */
+export interface SpotifyMusicProfile {
+  /**
+   * List of artist data the user is most likely to attend concerts for,
+   * sorted by affinity.
+   *
+   * - Maximum of 1000 items.
+   */
+  artists: Array<{
+    name: string;
+    imageUrl: string;
+  }>;
+
+  /**
+   * List of genres the user listens to most, aggregated from artist genres,
+   * sorted by affinity.
+   *
+   * - Items must be strings.
+   * - Maximum of 1000 items.
+   */
+  genres: string[];
 }

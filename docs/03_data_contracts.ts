@@ -53,3 +53,26 @@ export interface UserPreferences {
    */
   otherPreferences?: string;
 }
+
+/**
+ * Spotify Music Profile -- relevant if user connects with Spoitfy
+ */
+export interface SpotifyMusicProfile {
+  /**
+   * List of artist names the user is most likely to attend concerts for,
+   * sorted by affinity.
+   * 
+   * - Items must be strings.
+   * - Maximum of 1000 items.
+   */
+  artists: string[];
+
+  /**
+   * List of genres the user listens to most, aggregated from artist genres,
+   * sorted by affinity.
+   * 
+   * - Items must be strings.
+   * - Maximum of 1000 items.
+   */
+  genres: string[];
+}

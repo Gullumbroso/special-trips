@@ -9,6 +9,10 @@ const openai = new OpenAI({
 
 const PROMPT_ID = "pmpt_68b758d74f60819593d91d254518d4fc020955df32c90659";
 
+// Disable caching for this route
+export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
+
 export async function POST(request: NextRequest) {
   try {
     const preferences: UserPreferences = await request.json();
@@ -18,21 +22,38 @@ export async function POST(request: NextRequest) {
       .map((interest) => INTEREST_LABELS[interest])
       .join(", ");
 
+    // Format music taste - include Spotify data if available (up to 1000 each)
+    let musicTasteString = preferences.musicProfile;
+    if (preferences.spotifyMusicProfile) {
+      // Format as stringified JSON object with artists and genres arrays
+      const spotifyData = {
+        artists: preferences.spotifyMusicProfile.artists.map((a) => a.name),
+        genres: preferences.spotifyMusicProfile.genres,
+      };
+      musicTasteString = JSON.stringify(spotifyData);
+    }
+
+    const promptVariables = {
+      interests: interestsString,
+      music_taste: musicTasteString,
+      date_range: preferences.timeframe,
+      free_text_requests: preferences.otherPreferences || "None",
+    };
+
     // Create a ReadableStream for SSE
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
         try {
+          // Send prompt variables to client for logging
+          const debugMessage = `event: debug\ndata: ${JSON.stringify({ promptVariables })}\n\n`;
+          controller.enqueue(encoder.encode(debugMessage));
+
           // Call OpenAI API with streaming enabled
           const response = await openai.responses.create({
             prompt: {
               id: PROMPT_ID,
-              variables: {
-                interests: interestsString,
-                music_taste: preferences.musicProfile,
-                date_range: preferences.timeframe,
-                free_text_requests: preferences.otherPreferences || "None",
-              },
+              variables: promptVariables,
             },
             reasoning: {
               effort: "medium",

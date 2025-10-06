@@ -60,7 +60,11 @@ export default function LoadingBundlesPage() {
             const eventType = eventLine.slice(6).trim();
             const data = JSON.parse(dataLine.slice(5).trim());
 
-            if (eventType === "reasoning_summary") {
+            if (eventType === "debug") {
+              // Log OpenAI prompt variables to browser console
+              console.log("📤 OpenAI Prompt Variables:");
+              console.log(data.promptVariables);
+            } else if (eventType === "reasoning_summary") {
               const now = Date.now();
               const newId = `summary-${now}-${Math.random()}`;
               setReasoningSummaries((prev) => [...prev, {
@@ -139,7 +143,7 @@ export default function LoadingBundlesPage() {
                   <div
                     key={summary.id}
                     style={{
-                      opacity: isLatest ? 1.0 : 0.5,
+                      opacity: isLatest ? .85 : 0.25,
                       animation: isLatest ? 'fade-in-slide 0.5s cubic-bezier(0.4, 0, 0.2, 1)' : 'none'
                     }}
                   >

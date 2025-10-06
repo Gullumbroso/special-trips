@@ -18,12 +18,15 @@ export default function BundlesPage() {
 
   useEffect(() => {
     async function loadBundles() {
+      console.log('Loading bundles, generatedBundles:', generatedBundles);
       // Use generated bundles from context if available, otherwise fall back to static data
       if (generatedBundles && generatedBundles.length > 0) {
+        console.log('Using generated bundles:', generatedBundles.length);
         setBundles(generatedBundles);
         setLoading(false);
       } else {
         // Fallback to static data for development
+        console.log('Using fallback sample data');
         const data = await getBundles();
         setBundles(data);
         setLoading(false);

@@ -8,6 +8,7 @@ import { usePreferences } from "@/lib/context/PreferencesContext";
 import BundleCard from "@/components/bundles/BundleCard";
 import Button from "@/components/ui/Button";
 import Dialog from "@/components/ui/Dialog";
+import Logo from "@/components/ui/Logo";
 
 export default function BundlesPage() {
   const router = useRouter();
@@ -53,10 +54,7 @@ export default function BundlesPage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="sticky top-0 bg-background border-b border-gray-200 px-6 py-4 z-10">
-        <div className="flex items-center gap-2">
-          <div className="text-2xl">🍀</div>
-          <span className="text-lg font-bold">SpecialTrips</span>
-        </div>
+        <Logo size="sm" />
       </div>
 
       {/* Bundles Feed */}

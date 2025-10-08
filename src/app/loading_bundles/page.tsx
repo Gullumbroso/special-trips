@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { usePreferences } from "@/lib/context/PreferencesContext";
+import Logo from "@/components/ui/Logo";
 
 interface ReasoningSummary {
   id: string;
@@ -104,13 +105,8 @@ export default function LoadingBundlesPage() {
   return (
     <div className="relative min-h-screen max-h-screen overflow-hidden flex flex-col px-6 py-8 bg-background">
       {/* Logo */}
-      <div className="flex items-center gap-2 mb-12">
-        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect width="32" height="32" rx="6" fill="#B8F501"/>
-          <path d="M16 8L20 12L16 16L12 12L16 8Z" fill="white"/>
-          <path d="M16 16L20 20L16 24L12 20L16 16Z" fill="white"/>
-        </svg>
-        <span className="text-xl font-bold">SpecialTrips</span>
+      <div className="mb-12">
+        <Logo size="md" />
       </div>
 
       {/* Main content */}

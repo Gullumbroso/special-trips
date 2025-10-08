@@ -8,6 +8,7 @@ import { usePreferences } from "@/lib/context/PreferencesContext";
 import { INTEREST_OPTIONS } from "@/lib/constants";
 import { InterestType } from "@/lib/types";
 import Link from "next/link";
+import Logo from "@/components/ui/Logo";
 
 export default function InterestsPage() {
   const router = useRouter();
@@ -39,9 +40,8 @@ export default function InterestsPage() {
   return (
     <div className="min-h-screen flex flex-col px-6 py-8">
       {/* Logo */}
-      <div className="flex items-center gap-2 mb-12">
-        <div className="text-3xl">🍀</div>
-        <span className="text-xl font-bold">SpecialTrips</span>
+      <div className="mb-12">
+        <Logo size="md" />
       </div>
 
       {/* Content */}

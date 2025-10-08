@@ -6,6 +6,7 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import { usePreferences } from "@/lib/context/PreferencesContext";
 import Link from "next/link";
+import Logo from "@/components/ui/Logo";
 
 export default function TripTimeframePage() {
   const router = useRouter();
@@ -20,9 +21,8 @@ export default function TripTimeframePage() {
   return (
     <div className="min-h-screen flex flex-col px-6 py-8">
       {/* Logo */}
-      <div className="flex items-center gap-2 mb-12">
-        <div className="text-3xl">🍀</div>
-        <span className="text-xl font-bold">SpecialTrips</span>
+      <div className="mb-12">
+        <Logo size="md" />
       </div>
 
       {/* Content */}

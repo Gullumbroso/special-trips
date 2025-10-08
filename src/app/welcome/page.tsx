@@ -1,12 +1,18 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import Logo from "@/components/ui/Logo";
 
 export default function WelcomePage() {
+  // Clear session ID when starting fresh
+  useEffect(() => {
+    localStorage.removeItem('special-trips-session-id');
+  }, []);
+
   return (
-    <div className="min-h-screen flex flex-col px-6 pt-8">
+    <div className="min-h-screen flex flex-col px-6 pt-4">
       {/* Logo */}
       <div className="mb-20 -ml-2">
         <Logo size="md" />

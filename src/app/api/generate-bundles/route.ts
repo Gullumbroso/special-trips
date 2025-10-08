@@ -3,6 +3,13 @@ import OpenAI from "openai";
 import { UserPreferences } from "@/lib/types";
 import { INTEREST_LABELS } from "@/lib/constants";
 import { fetchEventImages } from "@/lib/opengraph";
+import {
+  getSession,
+  createSession,
+  addSessionSummary,
+  completeSession,
+  errorSession
+} from "@/lib/sessionCache";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -16,7 +23,31 @@ export const fetchCache = 'force-no-store';
 
 export async function POST(request: NextRequest) {
   try {
-    const preferences: UserPreferences = await request.json();
+    const body = await request.json();
+    const preferences: UserPreferences = body.preferences;
+    const sessionId: string = body.sessionId;
+
+    if (!sessionId) {
+      return new Response(
+        JSON.stringify({ error: "Session ID is required" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check if session already exists and is complete
+    const existingSession = getSession(sessionId);
+    if (existingSession?.status === 'complete') {
+      console.log(`[SESSION] Session ${sessionId} already complete, returning cached bundles`);
+      return new Response(
+        JSON.stringify({ bundles: existingSession.bundles }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    // Create or resume session
+    if (!existingSession) {
+      createSession(sessionId);
+    }
 
     // Format interests as comma-separated string with labels
     const interestsString = preferences.interests
@@ -116,6 +147,8 @@ export async function POST(request: NextRequest) {
                 const text = event.part?.text || "";
                 if (text) {
                   console.log(`[SUMMARY ${event.summary_index}]:`, text);
+                  // Cache the summary
+                  addSessionSummary(sessionId, text);
                   const message = `event: reasoning_summary\ndata: ${JSON.stringify({ text })}\n\n`;
                   controller.enqueue(encoder.encode(message));
                 }
@@ -212,6 +245,9 @@ export async function POST(request: NextRequest) {
                   // Extract just the bundles array from the GPT response
                   const bundlesArray = parsedResponse.bundles || [];
 
+                  // Cache the completed bundles
+                  completeSession(sessionId, bundlesArray);
+
                   console.log(`[SENDING] Completed event to client with ${bundlesArray.length} bundles`);
                   const message = `event: completed\ndata: ${JSON.stringify({ bundles: bundlesArray })}\n\n`;
                   controller.enqueue(encoder.encode(message));
@@ -245,7 +281,10 @@ export async function POST(request: NextRequest) {
           // Controller is closed inside processStream when completed event is sent
         } catch (error) {
           console.error("Error generating bundles:", error);
-          const errorMessage = `event: error\ndata: ${JSON.stringify({ message: error instanceof Error ? error.message : "Unknown error" })}\n\n`;
+          const errorMsg = error instanceof Error ? error.message : "Unknown error";
+          // Cache the error
+          errorSession(sessionId, errorMsg);
+          const errorMessage = `event: error\ndata: ${JSON.stringify({ message: errorMsg })}\n\n`;
           controller.enqueue(encoder.encode(errorMessage));
           controller.close();
         }

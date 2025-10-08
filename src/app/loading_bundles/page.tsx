@@ -12,30 +12,98 @@ interface ReasoningSummary {
   timestamp: number;
 }
 
+// Generate a unique session ID or retrieve from localStorage
+function getOrCreateSessionId(): string {
+  const STORAGE_KEY = 'special-trips-session-id';
+
+  if (typeof window === 'undefined') return '';
+
+  let sessionId = localStorage.getItem(STORAGE_KEY);
+
+  if (!sessionId) {
+    // Generate UUID v4
+    sessionId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+    localStorage.setItem(STORAGE_KEY, sessionId);
+  }
+
+  return sessionId;
+}
+
 export default function LoadingBundlesPage() {
   const router = useRouter();
   const { preferences, setBundles } = usePreferences();
   const [reasoningSummaries, setReasoningSummaries] = useState<ReasoningSummary[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const hasRequestedRef = useRef(false);
+  const [sessionId] = useState(getOrCreateSessionId);
 
   useEffect(() => {
     // Prevent multiple requests (especially in React Strict Mode)
     if (hasRequestedRef.current) {
-      console.log("⚠️ Preventing duplicate request to OpenAI");
+      console.log("⚠️ Preventing duplicate request");
       return;
     }
     hasRequestedRef.current = true;
-    console.log("✅ Initiating single request to OpenAI");
 
-    async function generateBundles() {
+    async function checkSessionAndGenerate() {
       try {
+        if (!sessionId) {
+          console.log("⚠️ No session ID available");
+          return;
+        }
+
+        console.log(`🔍 Checking session state for: ${sessionId}`);
+
+        // First, check if we have existing session state
+        const sessionResponse = await fetch(`/api/session/${sessionId}`);
+
+        if (sessionResponse.ok) {
+          const sessionData = await sessionResponse.json();
+          console.log(`📊 Session state:`, sessionData.status);
+
+          // If session is complete, navigate to bundles immediately
+          if (sessionData.status === 'complete' && sessionData.bundles) {
+            console.log("✅ Session already complete, loading bundles");
+            setBundles(sessionData.bundles);
+            router.push("/bundles");
+            return;
+          }
+
+          // If session has error, show error
+          if (sessionData.status === 'error') {
+            console.log("❌ Session has error:", sessionData.error);
+            router.push("/error?message=" + encodeURIComponent(sessionData.error || "Unknown error"));
+            return;
+          }
+
+          // If session is generating, restore summaries and continue
+          if (sessionData.status === 'generating' && sessionData.summaries) {
+            console.log(`🔄 Resuming session with ${sessionData.summaries.length} summaries`);
+            const restoredSummaries = sessionData.summaries.map((text: string, index: number) => ({
+              id: `summary-restored-${index}`,
+              text,
+              complete: true,
+              timestamp: Date.now() - (sessionData.summaries.length - index) * 1000,
+            }));
+            setReasoningSummaries(restoredSummaries);
+          }
+        }
+
+        // Start or continue generation
+        console.log("🚀 Starting/continuing generation");
         const response = await fetch("/api/generate-bundles", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(preferences),
+          body: JSON.stringify({
+            sessionId,
+            preferences,
+          }),
         });
 
         if (!response.ok) {
@@ -71,7 +139,6 @@ export default function LoadingBundlesPage() {
             const data = JSON.parse(dataLine.slice(5).trim());
 
             if (eventType === "debug") {
-              // Log OpenAI prompt variables to browser console
               console.log("📤 OpenAI Prompt Variables:");
               console.log(data.promptVariables);
             } else if (eventType === "reasoning_summary") {
@@ -85,7 +152,6 @@ export default function LoadingBundlesPage() {
               }]);
             } else if (eventType === "completed") {
               console.log("✅ COMPLETED EVENT RECEIVED:", data.bundles);
-              // data.bundles is always an array from the API
               setBundles(data.bundles);
               router.push("/bundles");
             } else if (eventType === "error") {
@@ -94,13 +160,13 @@ export default function LoadingBundlesPage() {
           }
         }
       } catch (error) {
-        console.error("Error generating bundles:", error);
+        console.error("Error in session/generation:", error);
         router.push("/error?message=" + encodeURIComponent("Network error. Please check your connection."));
       }
     }
 
-    generateBundles();
-  }, [preferences, router, setBundles]);
+    checkSessionAndGenerate();
+  }, [preferences, router, setBundles, sessionId]);
 
   return (
     <div className="relative min-h-screen max-h-screen overflow-hidden flex flex-col px-6 py-8 bg-background">

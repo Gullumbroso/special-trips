@@ -9,10 +9,15 @@ interface EventCardProps {
 }
 
 export default function EventCard({ event, isMinor = false }: EventCardProps) {
+  // Generate random fallback image number (1-10) consistently per event
+  const fallbackImageNumber = event.imageUrl
+    ? 0
+    : Math.floor(Math.random() * 10) + 1;
+
   return (
     <div className={`bg-white rounded-lg overflow-hidden mb-6 ${isMinor ? "opacity-90" : ""}`}>
       {/* Event Image */}
-      <div className="relative w-full">
+      <div className={`relative w-full ${!event.imageUrl ? "h-48" : ""}`}>
         {event.imageUrl ? (
           <ImageWithFallback
             src={event.imageUrl}
@@ -22,9 +27,20 @@ export default function EventCard({ event, isMinor = false }: EventCardProps) {
             className="w-full h-auto"
           />
         ) : (
-          <div className="w-full h-40 bg-gradient-to-br from-secondary/10 to-primary/10 flex items-center justify-center">
-            <span className="text-5xl">{INTEREST_EMOJIS[event.interestType]}</span>
-          </div>
+          <>
+            <ImageWithFallback
+              src={`/fallback-images/${fallbackImageNumber}.png`}
+              alt={event.title}
+              fill
+              className="object-cover"
+            />
+            {/* Emoji overlay */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="bg-white/80 rounded-full p-4 shadow-lg">
+                <span className="text-5xl">{INTEREST_EMOJIS[event.interestType]}</span>
+              </div>
+            </div>
+          </>
         )}
       </div>
 
@@ -36,7 +52,7 @@ export default function EventCard({ event, isMinor = false }: EventCardProps) {
           <span className="text-text-gray">{INTEREST_LABELS[event.interestType]}</span>
         </div>
 
-        <h3 className="font-serif text-xl font-bold mb-2">
+        <h3 className="font-serif text-xl font-semibold mb-2">
           {event.title}
         </h3>
 
@@ -44,7 +60,7 @@ export default function EventCard({ event, isMinor = false }: EventCardProps) {
           {formatDateRange(event.dateRange)}
         </div>
 
-        <p className="text-text-gray mb-4 text-sm leading-relaxed">
+        <p className="text-base font-medium text-text-gray mb-4 leading-relaxed">
           {event.fullDescription}
         </p>
 

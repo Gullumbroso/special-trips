@@ -31,11 +31,11 @@ export default function BundleCard({ bundle, index }: BundleCardProps) {
             <span>{bundle.city}</span>
           </div>
 
-          <h2 className="font-serif text-2xl font-bold mb-3 leading-tight">
+          <h2 className="font-serif text-2xl font-semibold mb-3 leading-tight">
             {bundle.title}
           </h2>
 
-          <p className="text-text-gray mb-4 line-clamp-3">
+          <p className="text-sm text-text-gray mb-4 line-clamp-3">
             {bundle.description}
           </p>
 

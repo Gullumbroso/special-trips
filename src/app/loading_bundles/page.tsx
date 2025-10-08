@@ -111,11 +111,11 @@ export default function LoadingBundlesPage() {
 
       {/* Main content */}
       <div className="max-w-2xl">
-        <h1 className="font-serif text-5xl font-bold mb-3 leading-tight">
+        <h1 className="font-serif text-[32px] font-semibold mb-3 leading-tight">
           Working on it...
         </h1>
 
-        <p className="text-base text-text-gray mb-6">
+        <p className="text-base font-medium text-text-gray mb-6">
           This might take a few minutes.
           <br />
           We&apos;ll let you know once we&apos;re done.
@@ -123,9 +123,9 @@ export default function LoadingBundlesPage() {
 
         {/* Spinner */}
         <div className="mb-8">
-          <svg width="32" height="32" viewBox="0 0 32 32" className="animate-spin">
-            <circle cx="16" cy="16" r="14" fill="none" stroke="#B8F501" strokeWidth="2" opacity="0.3"/>
-            <path d="M16 2 A14 14 0 0 1 30 16" fill="none" stroke="#B8F501" strokeWidth="2" strokeLinecap="round"/>
+          <svg width="36" height="36" viewBox="0 0 36 36" className="animate-spin">
+            <circle cx="18" cy="18" r="16" fill="none" stroke="#B8F501" strokeWidth="2" opacity="0.3"/>
+            <path d="M18 2 A16 16 0 0 1 34 18" fill="none" stroke="#B8F501" strokeWidth="2" strokeLinecap="round"/>
           </svg>
         </div>
 

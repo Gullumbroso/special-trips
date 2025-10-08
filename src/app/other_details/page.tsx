@@ -27,11 +27,11 @@ export default function OtherDetailsPage() {
 
       {/* Content */}
       <div className="flex-1 flex flex-col max-w-md">
-        <h1 className="font-serif text-4xl font-bold mb-4">
+        <h1 className="font-serif text-[32px] font-semibold mb-4 leading-tight">
           Any other preferences?
         </h1>
 
-        <p className="text-text-gray mb-8">(Optional)</p>
+        <p className="text-base font-medium text-text-gray mb-8">(Optional)</p>
 
         <Textarea
           value={otherPreferences}

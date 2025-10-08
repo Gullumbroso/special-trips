@@ -118,6 +118,7 @@ export async function POST(request: NextRequest) {
 
               // Collect output text deltas (final answer)
               if (event.type === "response.output_text.delta") {
+                console.log(`[TEXT DELTA] Length: ${event.delta?.length || 0}`);
                 fullContent += event.delta || "";
               }
 
@@ -191,6 +192,8 @@ export async function POST(request: NextRequest) {
                 // Final response - has content
                 if (fullContent) {
                   console.log(`[PARSING] Final content length: ${fullContent.length}`);
+                  console.log(`[PARSING] First 200 chars: ${fullContent.substring(0, 200)}`);
+                  console.log(`[PARSING] Last 200 chars: ${fullContent.substring(fullContent.length - 200)}`);
                   // Parse JSON from the response
                   let parsedResponse;
                   try {

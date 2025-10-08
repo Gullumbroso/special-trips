@@ -59,9 +59,9 @@ export default function BundlesPage() {
 
       {/* Bundles Feed */}
       <div className="px-6 py-8">
-        <h1 className="font-serif text-3xl font-bold mb-6">
+        <h2 className="font-serif text-2xl font-semibold mb-6">
           Your Trip Bundles
-        </h1>
+        </h2>
 
         {bundles.map((bundle, index) => (
           <BundleCard key={index} bundle={bundle} index={index} />

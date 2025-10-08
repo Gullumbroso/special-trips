@@ -95,20 +95,20 @@ export default function BundleDetailsPage() {
             <span>{bundle.city}</span>
           </div>
 
-          <h1 className="font-serif text-3xl font-bold mb-4 leading-tight">
+          <h1 className="font-serif text-[32px] font-semibold mb-4 leading-tight">
             {bundle.title}
           </h1>
 
-          <p className="text-text-gray leading-relaxed">
+          <p className="text-base font-medium text-text-gray leading-relaxed">
             {bundle.description}
           </p>
         </div>
 
         {/* Events Overview */}
         <div className="mb-8">
-          <h2 className="font-serif text-2xl font-bold mb-2">
+          <h3 className="text-xl mb-2">
             Key Events ({bundle.keyEvents.length})
-          </h2>
+          </h3>
           {bundle.minorEvents.length > 0 && (
             <p className="text-text-gray text-sm">
               + {bundle.minorEvents.length} other interesting events
@@ -118,7 +118,7 @@ export default function BundleDetailsPage() {
 
         {/* Key Events */}
         <div className="mb-8">
-          <h3 className="font-serif text-xl font-bold mb-4">Key Events</h3>
+          <h3 className="text-xl mb-4">Key Events</h3>
           {bundle.keyEvents.map((event, idx) => (
             <EventCard key={idx} event={event} />
           ))}
@@ -127,7 +127,7 @@ export default function BundleDetailsPage() {
         {/* Minor Events */}
         {bundle.minorEvents.length > 0 && (
           <div>
-            <h3 className="font-serif text-xl font-bold mb-4">
+            <h3 className="text-xl mb-4">
               Other Interesting Events
             </h3>
             {bundle.minorEvents.map((event, idx) => (

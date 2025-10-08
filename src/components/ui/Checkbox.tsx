@@ -7,14 +7,14 @@ interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "typ
 
 export default function Checkbox({ label, emoji, className = "", ...props }: CheckboxProps) {
   return (
-    <label className={`flex items-center gap-3 px-4 py-4 rounded-lg border-2 border-secondary/30 bg-secondary/5 cursor-pointer transition-all hover:border-secondary/50 ${props.checked ? "border-secondary bg-secondary/10" : ""} ${className}`}>
+    <label className={`flex items-center gap-2.5 px-3 h-[40px] rounded-lg border cursor-pointer transition-all ${props.checked ? "border-secondary/60 bg-secondary/10" : "border-gray-200 bg-white hover:border-gray-300"} ${className}`}>
       <input
         type="checkbox"
-        className="w-5 h-5 rounded accent-secondary cursor-pointer"
+        className="w-4 h-4 rounded accent-secondary cursor-pointer"
         {...props}
       />
-      {emoji && <span className="text-xl">{emoji}</span>}
-      <span className="font-medium text-foreground">{label}</span>
+      {emoji && <span className={`text-base ${props.checked ? "" : "opacity-65"}`}>{emoji}</span>}
+      <span className={`font-medium text-foreground ${props.checked ? "" : "opacity-65"}`}>{label}</span>
     </label>
   );
 }

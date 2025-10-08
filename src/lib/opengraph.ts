@@ -36,24 +36,20 @@ export interface OpenGraphResponse {
 }
 
 /**
- * Checks if an image URL is a valid JPG or PNG (not SVG)
+ * Checks if an image URL is a valid photo format (not SVG or other icon formats)
  * @param imageUrl The image URL to check
- * @returns true if the image is JPG or PNG, false otherwise
+ * @returns true if the image is JPG, PNG, WebP, AVIF, or GIF, false otherwise
  */
 function isValidImageFormat(imageUrl: string): boolean {
   const lowerUrl = imageUrl.toLowerCase();
-  return lowerUrl.endsWith('.jpg') ||
-         lowerUrl.endsWith('.jpeg') ||
-         lowerUrl.endsWith('.png');
-}
-
-/**
- * Returns a random fallback image URL from the curated fallback image set
- * @returns A public URL path to a random fallback image
- */
-function getRandomFallbackImage(): string {
-  const imageNumber = Math.floor(Math.random() * 10) + 1; // Random number 1-10
-  return `/fallback-images/${imageNumber}.png`;
+  // Remove query parameters and fragments to check the actual file extension
+  const urlWithoutParams = lowerUrl.split('?')[0].split('#')[0];
+  return urlWithoutParams.endsWith('.jpg') ||
+         urlWithoutParams.endsWith('.jpeg') ||
+         urlWithoutParams.endsWith('.png') ||
+         urlWithoutParams.endsWith('.webp') ||
+         urlWithoutParams.endsWith('.avif') ||
+         urlWithoutParams.endsWith('.gif');
 }
 
 /**
@@ -66,9 +62,7 @@ export async function fetchEventImages(url: string): Promise<string[]> {
     // Check if API key is available
     if (!OPENGRAPH_API_KEY) {
       console.error(`[OPENGRAPH] API key is missing!`);
-      const fallbackImage = getRandomFallbackImage();
-      console.log(`[OPENGRAPH] API key missing, using fallback: ${fallbackImage}`);
-      return [fallbackImage];
+      return [];
     }
 
     // URL encode the site URL
@@ -80,9 +74,7 @@ export async function fetchEventImages(url: string): Promise<string[]> {
 
     if (!response.ok) {
       console.error(`[OPENGRAPH] API error for ${url}: ${response.status} ${response.statusText}`);
-      const fallbackImage = getRandomFallbackImage();
-      console.log(`[OPENGRAPH] API error, using fallback: ${fallbackImage}`);
-      return [fallbackImage];
+      return [];
     }
 
     const data: OpenGraphResponse = await response.json();
@@ -133,17 +125,10 @@ export async function fetchEventImages(url: string): Promise<string[]> {
     console.log(`[OPENGRAPH] Found ${uniqueImages.length} valid image(s) for ${url}`);
     if (uniqueImages.length > 0) {
       console.log(`[OPENGRAPH] Images:`, uniqueImages);
-      return uniqueImages;
     }
-
-    // Use fallback image if no images found
-    const fallbackImage = getRandomFallbackImage();
-    console.log(`[OPENGRAPH] No images found, using fallback: ${fallbackImage}`);
-    return [fallbackImage];
+    return uniqueImages;
   } catch (error) {
     console.error(`[OPENGRAPH] Error fetching data for ${url}:`, error);
-    const fallbackImage = getRandomFallbackImage();
-    console.log(`[OPENGRAPH] Error occurred, using fallback: ${fallbackImage}`);
-    return [fallbackImage];
+    return [];
   }
 }

@@ -13,7 +13,7 @@ export default function Textarea({ label, className = "", ...props }: TextareaPr
         </label>
       )}
       <textarea
-        className={`w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all min-h-[120px] resize-none ${className}`}
+        className={`w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all h-[100px] resize-none ${className}`}
         {...props}
       />
     </div>

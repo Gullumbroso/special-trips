@@ -15,7 +15,7 @@ export default function Logo({ size = "md", linkTo }: LogoProps) {
 
   const logo = (
     <Image
-      src="/images/logo.png"
+      src="/images/logo-black.png"
       alt="SpecialTrips"
       height={sizes[size].height}
       width={sizes[size].width}

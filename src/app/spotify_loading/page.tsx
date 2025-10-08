@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { usePreferences } from "@/lib/context/PreferencesContext";
+import Logo from "@/components/ui/Logo";
 
 export default function SpotifyLoadingPage() {
   const router = useRouter();
@@ -68,25 +69,29 @@ export default function SpotifyLoadingPage() {
   return (
     <div className="min-h-screen flex flex-col px-6 py-8">
       {/* Logo */}
-      <div className="flex items-center gap-2 mb-12">
-        <div className="text-3xl">🍀</div>
-        <span className="text-xl font-bold">SpecialTrips</span>
+      <div className="mb-12">
+        <Logo size="md" />
       </div>
 
       {/* Content */}
-      <div className="flex-1 flex flex-col items-center justify-center max-w-md">
-        <h1 className="font-serif text-4xl font-bold mb-6">
+      <div className="max-w-2xl">
+        <h1 className="font-serif text-[32px] font-semibold mb-3 leading-tight">
           Connecting Spotify...
         </h1>
 
-        <p className="text-gray-600 mb-8 text-center">
+        <p className="text-base font-medium text-text-gray mb-6">
           We're connecting Spotify and learning your music taste.
           <br />
           This might take a few moments.
         </p>
 
         {/* Loading spinner */}
-        <div className="w-12 h-12 border-4 border-gray-200 border-t-green-500 rounded-full animate-spin"></div>
+        <div className="mb-8">
+          <svg width="36" height="36" viewBox="0 0 36 36" className="animate-spin">
+            <circle cx="18" cy="18" r="16" fill="none" stroke="#B8F501" strokeWidth="2" opacity="0.3"/>
+            <path d="M18 2 A16 16 0 0 1 34 18" fill="none" stroke="#B8F501" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        </div>
       </div>
     </div>
   );

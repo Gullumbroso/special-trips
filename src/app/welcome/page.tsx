@@ -6,25 +6,25 @@ import Logo from "@/components/ui/Logo";
 
 export default function WelcomePage() {
   return (
-    <div className="min-h-screen flex flex-col px-6 py-8">
+    <div className="min-h-screen flex flex-col px-6 pt-8">
       {/* Logo */}
-      <div className="mb-16">
+      <div className="mb-20">
         <Logo size="md" />
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col justify-center max-w-md">
-        <h1 className="font-serif text-5xl font-bold mb-8 leading-tight">
+      <div className="flex flex-col max-w-md">
+        <h1 className="font-serif text-[32px] font-semibold mb-6 leading-tight">
           Hi!
           <br />
           Let's find you something special
         </h1>
 
-        <p className="text-lg text-text-gray mb-4">
+        <p className="text-base font-medium text-text-gray mb-4">
           We'll help you plan trips with interesting experiences.
         </p>
 
-        <p className="text-lg text-text-gray mb-12">
+        <p className="text-base font-medium text-text-gray mb-6">
           But first, let's learn what you are passionate about.
         </p>
 

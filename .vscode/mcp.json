@@ -1,0 +1,7 @@
+{
+	"servers": {
+		"pipedream": {
+      "url": "https://mcp.pipedream.net/v2"
+    }
+}
+}

@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getSpotifyAuthUrl } from "@/lib/spotify";
 import { randomBytes } from "crypto";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const clientId = process.env.SPOTIFY_CLIENT_ID;
     const redirectUri = process.env.SPOTIFY_REDIRECT_URI;

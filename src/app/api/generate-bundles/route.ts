@@ -59,7 +59,10 @@ export async function POST(request: NextRequest) {
             let fullContent = "";
             const finalToolCalls: Record<number, unknown> = {};
 
-            for await (const event of stream) {
+            for await (const rawEvent of stream) {
+              // Type assertion for OpenAI streaming events
+              const event = rawEvent as { type?: string; [key: string]: unknown };
+
               // Log all event types for debugging (excluding noisy ones)
               if (event.type && event.type !== "response.reasoning_summary_text.delta") {
                 console.log(`[EVENT] ${event.type}`);

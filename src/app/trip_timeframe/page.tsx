@@ -21,7 +21,7 @@ export default function TripTimeframePage() {
   return (
     <div className="min-h-screen flex flex-col px-6 py-8">
       {/* Logo */}
-      <div className="mb-12">
+      <div className="mb-12 -ml-2">
         <Logo size="md" />
       </div>
 

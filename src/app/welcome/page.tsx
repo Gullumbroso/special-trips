@@ -8,7 +8,7 @@ export default function WelcomePage() {
   return (
     <div className="min-h-screen flex flex-col px-6 pt-8">
       {/* Logo */}
-      <div className="mb-20">
+      <div className="mb-20 -ml-2">
         <Logo size="md" />
       </div>
 

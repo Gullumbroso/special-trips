@@ -80,16 +80,61 @@ export default function LoadingBundlesPage() {
             return;
           }
 
-          // If session is generating, restore summaries and continue
-          if (sessionData.status === 'generating' && sessionData.summaries) {
-            console.log(`🔄 Resuming session with ${sessionData.summaries.length} summaries`);
-            const restoredSummaries = sessionData.summaries.map((text: string, index: number) => ({
-              id: `summary-restored-${index}`,
-              text,
-              complete: true,
-              timestamp: Date.now() - (sessionData.summaries.length - index) * 1000,
-            }));
-            setReasoningSummaries(restoredSummaries);
+          // If session is generating, restore summaries and poll for completion
+          if (sessionData.status === 'generating') {
+            console.log(`🔄 Session still generating with ${sessionData.summaries?.length || 0} summaries`);
+            if (sessionData.summaries && sessionData.summaries.length > 0) {
+              const restoredSummaries = sessionData.summaries.map((text: string, index: number) => ({
+                id: `summary-restored-${index}`,
+                text,
+                complete: true,
+                timestamp: Date.now() - (sessionData.summaries.length - index) * 1000,
+              }));
+              setReasoningSummaries(restoredSummaries);
+            }
+
+            // Poll for completion instead of starting new stream
+            console.log("⏳ Polling for session completion...");
+            const pollInterval = setInterval(async () => {
+              try {
+                const pollResponse = await fetch(`/api/session/${sessionId}`);
+                if (pollResponse.ok) {
+                  const pollData = await pollResponse.json();
+
+                  // Update summaries if new ones arrived
+                  if (pollData.summaries && pollData.summaries.length > sessionData.summaries?.length) {
+                    const newSummaries = pollData.summaries.map((text: string, index: number) => ({
+                      id: `summary-poll-${index}`,
+                      text,
+                      complete: true,
+                      timestamp: Date.now() - (pollData.summaries.length - index) * 1000,
+                    }));
+                    setReasoningSummaries(newSummaries);
+                  }
+
+                  if (pollData.status === 'complete' && pollData.bundles) {
+                    console.log("✅ Polling detected completion!");
+                    clearInterval(pollInterval);
+                    setBundles(pollData.bundles);
+                    router.push("/bundles");
+                  } else if (pollData.status === 'error') {
+                    console.log("❌ Polling detected error:", pollData.error);
+                    clearInterval(pollInterval);
+                    router.push("/error?message=" + encodeURIComponent(pollData.error || "Unknown error"));
+                  }
+                }
+              } catch (error) {
+                console.error("Polling error:", error);
+              }
+            }, 2000); // Poll every 2 seconds
+
+            // Stop polling after 10 minutes max
+            setTimeout(() => {
+              clearInterval(pollInterval);
+              console.log("⏰ Polling timeout reached");
+            }, 10 * 60 * 1000);
+
+            return; // Don't start a new generation stream
           }
         }
 

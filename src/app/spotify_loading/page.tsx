@@ -51,7 +51,7 @@ export default function SpotifyLoadingPage() {
 
         // Generate a text summary for the musicProfile field
         const topGenres = musicProfile.genres.slice(0, 5).join(", ");
-        const topArtistNames = musicProfile.artists.slice(0, 5).map((a) => a.name).join(", ");
+        const topArtistNames = musicProfile.artists.slice(0, 5).map((a: { name: string }) => a.name).join(", ");
         const summary = `${topGenres} • ${topArtistNames}`;
         updateMusicProfile(summary);
 

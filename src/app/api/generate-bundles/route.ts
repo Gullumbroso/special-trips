@@ -53,15 +53,17 @@ export async function POST(request: NextRequest) {
           // Helper function to process streaming response with function calling
           async function processStream(
             streamPromise: Promise<AsyncIterable<unknown>>,
-            conversationInput: Array<unknown> = []
+            conversationInput: Array<any> = [] // eslint-disable-line @typescript-eslint/no-explicit-any
           ) {
             const stream = await streamPromise;
             let fullContent = "";
-            const finalToolCalls: Record<number, unknown> = {};
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const finalToolCalls: Record<number, any> = {};
 
             for await (const rawEvent of stream) {
               // Type assertion for OpenAI streaming events
-              const event = rawEvent as { type?: string; [key: string]: unknown };
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const event = rawEvent as any;
 
               // Log all event types for debugging (excluding noisy ones)
               if (event.type && event.type !== "response.reasoning_summary_text.delta") {

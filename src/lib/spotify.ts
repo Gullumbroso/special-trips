@@ -59,7 +59,7 @@ async function fetchPaginated<T>(
   let url: string | null = initialUrl;
 
   while (url && results.length < maxItems) {
-    const response = await fetch(url, {
+    const response: Response = await fetch(url, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },

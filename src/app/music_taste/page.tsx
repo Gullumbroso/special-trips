@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Button from "@/components/ui/Button";
 import Textarea from "@/components/ui/Textarea";
@@ -9,7 +9,7 @@ import Link from "next/link";
 import InfiniteCarousel from "@/components/spotify/InfiniteCarousel";
 import Logo from "@/components/ui/Logo";
 
-export default function MusicTastePage() {
+function MusicTasteContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { preferences, updateMusicProfile } = usePreferences();
@@ -199,3 +199,10 @@ export default function MusicTastePage() {
   );
 }
 
+export default function MusicTastePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <MusicTasteContent />
+    </Suspense>
+  );
+}

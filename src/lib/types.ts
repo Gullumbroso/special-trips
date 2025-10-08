@@ -12,6 +12,7 @@ export interface Event {
   interestType: InterestType;
   dateRange: DateRange;
   eventWebsite?: string; // optional in UI
+  imageUrl?: string; // optional event image
 }
 
 export interface TripBundle {

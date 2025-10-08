@@ -16,8 +16,17 @@ export default function LoadingBundlesPage() {
   const { preferences, setBundles } = usePreferences();
   const [reasoningSummaries, setReasoningSummaries] = useState<ReasoningSummary[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
+  const hasRequestedRef = useRef(false);
 
   useEffect(() => {
+    // Prevent multiple requests (especially in React Strict Mode)
+    if (hasRequestedRef.current) {
+      console.log("⚠️ Preventing duplicate request to OpenAI");
+      return;
+    }
+    hasRequestedRef.current = true;
+    console.log("✅ Initiating single request to OpenAI");
+
     async function generateBundles() {
       try {
         const response = await fetch("/api/generate-bundles", {
@@ -74,6 +83,8 @@ export default function LoadingBundlesPage() {
                 timestamp: now
               }]);
             } else if (eventType === "completed") {
+              console.log("✅ COMPLETED EVENT RECEIVED:", data.bundles);
+              // data.bundles is always an array from the API
               setBundles(data.bundles);
               router.push("/bundles");
             } else if (eventType === "error") {
@@ -91,7 +102,7 @@ export default function LoadingBundlesPage() {
   }, [preferences, router, setBundles]);
 
   return (
-    <div className="min-h-screen flex flex-col px-6 py-8 bg-background">
+    <div className="relative min-h-screen max-h-screen overflow-hidden flex flex-col px-6 py-8 bg-background">
       {/* Logo */}
       <div className="flex items-center gap-2 mb-12">
         <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -125,7 +136,7 @@ export default function LoadingBundlesPage() {
         {/* Reasoning summaries */}
         {reasoningSummaries.length > 0 && (
           <div ref={containerRef} className="relative">
-            <div className="flex flex-col-reverse gap-4">
+            <div className="flex flex-col-reverse gap-2">
               {reasoningSummaries.map((summary, arrayIndex) => {
                 const trimmedText = summary.text.trim();
                 let displayText: string;
@@ -156,6 +167,11 @@ export default function LoadingBundlesPage() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Bottom gradient overlay */}
+      <div className="fixed bottom-0 left-0 right-0" style={{ height: '512px' }}>
+        <div className="w-full h-full bg-gradient-to-t from-background to-transparent pointer-events-none" />
       </div>
     </div>
   );

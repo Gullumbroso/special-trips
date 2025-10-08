@@ -6,6 +6,7 @@ import { UserPreferences, InterestType, TripBundle, SpotifyMusicProfile } from "
 interface PreferencesContextType {
   preferences: UserPreferences;
   bundles: TripBundle[] | null;
+  isHydrated: boolean;
   updateInterests: (interests: InterestType[]) => void;
   updateMusicProfile: (profile: string) => void;
   updateSpotifyMusicProfile: (spotifyProfile: SpotifyMusicProfile) => void;
@@ -34,6 +35,9 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     const storedPrefs = localStorage.getItem("userPreferences");
     const storedBundles = localStorage.getItem("generatedBundles");
 
+    console.log("Hydrating from localStorage...");
+    console.log("Stored bundles found:", !!storedBundles);
+
     if (storedPrefs) {
       try {
         setPreferences(JSON.parse(storedPrefs));
@@ -44,7 +48,9 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 
     if (storedBundles) {
       try {
-        setBundlesState(JSON.parse(storedBundles));
+        const parsed = JSON.parse(storedBundles);
+        console.log("Loading bundles from localStorage, count:", parsed.length);
+        setBundlesState(parsed);
       } catch (error) {
         console.error("Failed to parse stored bundles:", error);
       }
@@ -63,6 +69,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   // Sync bundles to localStorage on changes
   useEffect(() => {
     if (isHydrated && bundles) {
+      console.log("Saving bundles to localStorage:", bundles.length);
       localStorage.setItem("generatedBundles", JSON.stringify(bundles));
     }
   }, [bundles, isHydrated]);
@@ -103,6 +110,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       value={{
         preferences,
         bundles,
+        isHydrated,
         updateInterests,
         updateMusicProfile,
         updateSpotifyMusicProfile,

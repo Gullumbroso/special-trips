@@ -11,11 +11,21 @@ interface EventCardProps {
 export default function EventCard({ event, isMinor = false }: EventCardProps) {
   return (
     <div className={`bg-white rounded-lg overflow-hidden mb-6 ${isMinor ? "opacity-90" : ""}`}>
-      {/* Event Image - placeholder for now since events don't have images in data contract */}
-      <div className="relative w-full h-40">
-        <div className="w-full h-full bg-gradient-to-br from-secondary/10 to-primary/10 flex items-center justify-center">
-          <span className="text-5xl">{INTEREST_EMOJIS[event.interestType]}</span>
-        </div>
+      {/* Event Image */}
+      <div className="relative w-full">
+        {event.imageUrl ? (
+          <ImageWithFallback
+            src={event.imageUrl}
+            alt={event.title}
+            width={800}
+            height={600}
+            className="w-full h-auto"
+          />
+        ) : (
+          <div className="w-full h-40 bg-gradient-to-br from-secondary/10 to-primary/10 flex items-center justify-center">
+            <span className="text-5xl">{INTEREST_EMOJIS[event.interestType]}</span>
+          </div>
+        )}
       </div>
 
       {/* Content */}

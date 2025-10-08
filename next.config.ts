@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
         hostname: "**",
       },
     ],
+    unoptimized: true, // Bypass optimization for external images that may have issues
   },
 };
 

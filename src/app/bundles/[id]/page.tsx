@@ -8,23 +8,38 @@ import { formatDateRange } from "@/lib/utils";
 import EventCard from "@/components/bundles/EventCard";
 import ImageWithFallback from "@/components/ui/ImageWithFallback";
 import Button from "@/components/ui/Button";
+import { usePreferences } from "@/lib/context/PreferencesContext";
 
 export default function BundleDetailsPage() {
   const router = useRouter();
   const params = useParams();
+  const { bundles: generatedBundles, isHydrated } = usePreferences();
   const [bundle, setBundle] = useState<TripBundle | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadBundle() {
+      // Wait for context to hydrate from localStorage first
+      if (!isHydrated) {
+        return;
+      }
+
       if (params.id) {
-        const data = await getBundleById(params.id as string);
-        setBundle(data);
+        const index = parseInt(params.id as string, 10);
+
+        // Use generated bundles if available, otherwise fall back to static data
+        if (generatedBundles && generatedBundles.length > 0) {
+          const data = generatedBundles[index] || null;
+          setBundle(data);
+        } else {
+          const data = await getBundleById(params.id as string);
+          setBundle(data);
+        }
         setLoading(false);
       }
     }
     loadBundle();
-  }, [params.id]);
+  }, [params.id, generatedBundles, isHydrated]);
 
   if (loading) {
     return (

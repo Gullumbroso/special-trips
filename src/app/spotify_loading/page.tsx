@@ -1,14 +1,23 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { usePreferences } from "@/lib/context/PreferencesContext";
 
 export default function SpotifyLoadingPage() {
   const router = useRouter();
   const { updateSpotifyMusicProfile, updateMusicProfile } = usePreferences();
+  const hasProcessedRef = useRef(false);
 
   useEffect(() => {
+    // Prevent multiple API calls and redirects
+    if (hasProcessedRef.current) {
+      console.log("⚠️ Preventing duplicate Spotify profile fetch");
+      return;
+    }
+    hasProcessedRef.current = true;
+    console.log("✅ Fetching Spotify profile once");
+
     async function fetchSpotifyProfile() {
       try {
         // Get access token from URL hash

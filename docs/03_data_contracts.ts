@@ -11,6 +11,7 @@ export interface Event {
   shortDescription: string;
   interestType: InterestType;
   dateRange: DateRange;
+  imageUrl?: string; // optinal event image
   eventWebsite?: string; // optional in UI
 }
 

@@ -11,15 +11,21 @@ import Dialog from "@/components/ui/Dialog";
 
 export default function BundlesPage() {
   const router = useRouter();
-  const { bundles: generatedBundles, resetPreferences } = usePreferences();
+  const { bundles: generatedBundles, isHydrated, resetPreferences } = usePreferences();
   const [bundles, setBundles] = useState<TripBundle[]>([]);
   const [loading, setLoading] = useState(true);
   const [showRestartDialog, setShowRestartDialog] = useState(false);
 
   useEffect(() => {
     async function loadBundles() {
+      // Wait for context to hydrate from localStorage first
+      if (!isHydrated) {
+        return;
+      }
+
       console.log('Loading bundles, generatedBundles:', generatedBundles);
       // Use generated bundles from context if available, otherwise fall back to static data
+      // generatedBundles is always an array (or null)
       if (generatedBundles && generatedBundles.length > 0) {
         console.log('Using generated bundles:', generatedBundles.length);
         setBundles(generatedBundles);
@@ -33,7 +39,7 @@ export default function BundlesPage() {
       }
     }
     loadBundles();
-  }, [generatedBundles]);
+  }, [generatedBundles, isHydrated]);
 
   if (loading) {
     return (

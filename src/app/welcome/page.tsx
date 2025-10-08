@@ -17,19 +17,19 @@ export default function WelcomePage() {
         <h1 className="font-serif text-[32px] font-semibold mb-6 leading-tight">
           Hi!
           <br />
-          Let's find you something special
+          Let&apos;s find you something special
         </h1>
 
         <p className="text-base font-medium text-text-gray mb-4">
-          We'll help you plan trips with interesting experiences.
+          We&apos;ll help you plan trips with interesting experiences.
         </p>
 
         <p className="text-base font-medium text-text-gray mb-6">
-          But first, let's learn what you are passionate about.
+          But first, let&apos;s learn what you are passionate about.
         </p>
 
         <Link href="/interests">
-          <Button>Let's go →</Button>
+          <Button>Let&apos;s go →</Button>
         </Link>
       </div>
     </div>

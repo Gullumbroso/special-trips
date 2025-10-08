@@ -52,12 +52,12 @@ export async function POST(request: NextRequest) {
 
           // Helper function to process streaming response with function calling
           async function processStream(
-            streamPromise: Promise<AsyncIterable<any>>,
-            conversationInput: Array<any> = []
+            streamPromise: Promise<AsyncIterable<unknown>>,
+            conversationInput: Array<unknown> = []
           ) {
             const stream = await streamPromise;
             let fullContent = "";
-            const finalToolCalls: Record<number, any> = {};
+            const finalToolCalls: Record<number, unknown> = {};
 
             for await (const event of stream) {
               // Log all event types for debugging (excluding noisy ones)
@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
                   try {
                     parsedResponse = typeof fullContent === "string" ? JSON.parse(fullContent) : fullContent;
                     console.log(`[PARSED] Successfully parsed bundles, count: ${parsedResponse.bundles?.length || 'unknown'}`);
-                  } catch (parseError) {
+                  } catch {
                     console.error("Failed to parse response:", fullContent.substring(0, 500));
                     throw new Error("Invalid response format from AI");
                   }

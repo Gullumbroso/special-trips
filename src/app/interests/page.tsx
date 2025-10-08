@@ -20,7 +20,7 @@ export default function InterestsPage() {
     if (selectedInterests.length === 0) {
       setSelectedInterests(INTEREST_OPTIONS.map((opt) => opt.value));
     }
-  }, []);
+  }, [selectedInterests.length]);
 
   const handleToggle = (interest: InterestType) => {
     setSelectedInterests((prev) =>

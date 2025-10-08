@@ -8,7 +8,6 @@ import { usePreferences } from "@/lib/context/PreferencesContext";
 import Link from "next/link";
 import InfiniteCarousel from "@/components/spotify/InfiniteCarousel";
 import Logo from "@/components/ui/Logo";
-import Image from "next/image";
 
 export default function MusicTastePage() {
   const router = useRouter();

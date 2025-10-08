@@ -80,7 +80,7 @@ export default function SpotifyLoadingPage() {
         </h1>
 
         <p className="text-base font-medium text-text-gray mb-6">
-          We're connecting Spotify and learning your music taste.
+          We&apos;re connecting Spotify and learning your music taste.
           <br />
           This might take a few moments.
         </p>

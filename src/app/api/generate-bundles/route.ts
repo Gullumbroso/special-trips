@@ -17,6 +17,9 @@ const openai = new OpenAI({
 
 const PROMPT_ID = "pmpt_68b758d74f60819593d91d254518d4fc020955df32c90659";
 
+// Use Edge Runtime to avoid timeout limits
+export const runtime = 'edge';
+
 // Disable caching for this route
 export const dynamic = 'force-dynamic';
 export const fetchCache = 'force-no-store';

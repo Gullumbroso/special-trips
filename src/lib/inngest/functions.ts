@@ -122,6 +122,10 @@ export const generateBundles = inngest.createFunction(
 
           // Handle completion
           if (event.type === 'response.completed') {
+            const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+            console.log(`[INNGEST] [${elapsed}s] Response completed. Checking for function calls...`);
+            console.log(`[INNGEST] [${elapsed}s] Full content accumulated so far:`, fullContent.substring(0, 200));
+
             const functionCallItems = Object.values(finalToolCalls).filter(
               (item) => item && typeof item === 'object' && item.type === 'function_call'
             );
@@ -152,7 +156,12 @@ export const generateBundles = inngest.createFunction(
                       output: JSON.stringify(imageUrls),
                     });
                   } catch (error) {
-                    console.error(`[INNGEST] Error fetching images:`, error);
+                    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                    console.error(`[INNGEST] [${elapsed}s] Error with function call:`, error);
+                    console.error(`[INNGEST] Function call arguments:`, toolCall.arguments);
+                    console.error(`[INNGEST] Function call name:`, toolCall.name);
+
+                    // Return empty array on error
                     newConversationInput.push({
                       type: 'function_call_output',
                       call_id: toolCall.call_id,
@@ -187,12 +196,21 @@ export const generateBundles = inngest.createFunction(
             if (fullContent) {
               const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
               console.log(`[INNGEST] [${elapsed}s] Parsing final content, length: ${fullContent.length}`);
-              const parsedResponse = JSON.parse(fullContent);
-              const bundlesArray: TripBundle[] = parsedResponse.bundles || [];
 
-              console.log(`[INNGEST] [${elapsed}s] Completing session with ${bundlesArray.length} bundles`);
-              await completeSession(sessionId, bundlesArray);
-              return;
+              try {
+                const parsedResponse = JSON.parse(fullContent);
+                const bundlesArray: TripBundle[] = parsedResponse.bundles || [];
+
+                console.log(`[INNGEST] [${elapsed}s] Completing session with ${bundlesArray.length} bundles`);
+                await completeSession(sessionId, bundlesArray);
+                return;
+              } catch (parseError) {
+                console.error(`[INNGEST] [${elapsed}s] Failed to parse OpenAI response as JSON`);
+                console.error(`[INNGEST] Full content (first 500 chars):`, fullContent.substring(0, 500));
+                console.error(`[INNGEST] Parse error:`, parseError);
+
+                throw new Error(`OpenAI returned non-JSON response: ${fullContent.substring(0, 100)}...`);
+              }
             }
           }
         }

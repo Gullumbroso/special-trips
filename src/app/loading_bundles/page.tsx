@@ -180,7 +180,7 @@ export default function LoadingBundlesPage() {
         } catch (error) {
           console.error("Polling error:", error);
         }
-      }, 2000); // Poll every 2 seconds
+      }, 5000); // Poll every 5 seconds
 
       // Cleanup after 15 minutes max
       setTimeout(() => {

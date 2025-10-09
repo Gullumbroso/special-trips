@@ -231,16 +231,8 @@ export default function LoadingBundlesPage() {
           <div className="relative">
             <div className="flex flex-col-reverse gap-2">
               {reasoningSummaries.map((summary, arrayIndex) => {
-                const trimmedText = summary.text.trim();
-                let displayText: string;
-
-                if (trimmedText.startsWith('**')) {
-                  const match = trimmedText.match(/^\*\*([^*]+)\*\*/);
-                  displayText = match ? match[1].trim() : trimmedText.replace(/\*\*/g, '').trim();
-                } else {
-                  displayText = trimmedText.replace(/\*\*/g, '');
-                }
-
+                // Title is already extracted in the Inngest worker before sending to Redis
+                const displayText = summary.text.trim();
                 const isLatest = arrayIndex === reasoningSummaries.length - 1;
 
                 return (

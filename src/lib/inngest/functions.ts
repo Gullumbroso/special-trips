@@ -22,6 +22,22 @@ interface GenerateBundlesEvent {
   };
 }
 
+/**
+ * Extracts the title from a reasoning summary.
+ * If the summary starts with **Title**, extracts just the title.
+ * Otherwise, returns the full text with ** removed.
+ */
+function extractSummaryTitle(text: string): string {
+  const trimmedText = text.trim();
+
+  if (trimmedText.startsWith('**')) {
+    const match = trimmedText.match(/^\*\*([^*]+)\*\*/);
+    return match ? match[1].trim() : trimmedText.replace(/\*\*/g, '').trim();
+  }
+
+  return trimmedText.replace(/\*\*/g, '');
+}
+
 export const generateBundles = inngest.createFunction(
   {
     id: 'generate-bundles',
@@ -93,8 +109,9 @@ export const generateBundles = inngest.createFunction(
           if (event.type === 'response.reasoning_summary_part.done') {
             const text = event.part?.text || '';
             if (text) {
-              console.log(`[INNGEST] Summary: ${text.substring(0, 50)}...`);
-              await addSessionSummary(sessionId, text);
+              const title = extractSummaryTitle(text);
+              console.log(`[INNGEST] Summary: ${title.substring(0, 50)}...`);
+              await addSessionSummary(sessionId, title);
             }
           }
 

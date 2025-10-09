@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/sessionCache";
 
+// Use Edge Runtime to match generate-bundles route and share session cache
+export const runtime = 'edge';
+
 // Disable caching for this route
 export const dynamic = 'force-dynamic';
 export const fetchCache = 'force-no-store';

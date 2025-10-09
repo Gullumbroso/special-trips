@@ -17,6 +17,17 @@ const openai = new OpenAI({
 
 const PROMPT_ID = "pmpt_68b758d74f60819593d91d254518d4fc020955df32c90659";
 
+// Verbose logging mode - set to true to enable detailed logs for debugging
+const VERBOSE_MODE = false;
+
+// Verbose logging helper function
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function verboseLog(...args: any[]): void {
+  if (VERBOSE_MODE) {
+    console.log(...args);
+  }
+}
+
 // Use Edge Runtime to avoid timeout limits
 export const runtime = 'edge';
 
@@ -40,7 +51,7 @@ export async function POST(request: NextRequest) {
     // Check if session already exists and is complete
     const existingSession = getSession(sessionId);
     if (existingSession?.status === 'complete') {
-      console.log(`[SESSION] Session ${sessionId} already complete, returning cached bundles`);
+      verboseLog(`[SESSION] Session ${sessionId} already complete, returning cached bundles`);
       return new Response(
         JSON.stringify({ bundles: existingSession.bundles }),
         { status: 200, headers: { "Content-Type": "application/json" } }
@@ -101,14 +112,14 @@ export async function POST(request: NextRequest) {
 
               // Log all event types for debugging (excluding noisy ones)
               if (event.type && event.type !== "response.reasoning_summary_text.delta") {
-                console.log(`[EVENT] ${event.type}`);
+                verboseLog(`[EVENT] ${event.type}`);
               }
 
               // When a function call item is added, store the item (per docs)
               if (event.type === "response.output_item.added") {
                 finalToolCalls[event.output_index] = event.item;
                 if (event.item?.type === "function_call") {
-                  console.log(`[FUNCTION ADDED] ${event.item.name} with call_id: ${event.item.call_id}, id: ${event.item.id}`);
+                  verboseLog(`[FUNCTION ADDED] ${event.item.name} with call_id: ${event.item.call_id}, id: ${event.item.id}`);
                 }
               }
 
@@ -125,14 +136,14 @@ export async function POST(request: NextRequest) {
                 const index = event.output_index;
                 const toolCall = finalToolCalls[index];
                 if (toolCall) {
-                  console.log(`[FUNCTION ARGS DONE] ${toolCall.name}: ${toolCall.arguments}`);
+                  verboseLog(`[FUNCTION ARGS DONE] ${toolCall.name}: ${toolCall.arguments}`);
                 }
               }
 
               // When output item is done, it's fully ready
               if (event.type === "response.output_item.done") {
                 if (event.item?.type === "function_call") {
-                  console.log(`[FUNCTION ITEM DONE] ${event.item.name}, call_id: ${event.item.call_id}`);
+                  verboseLog(`[FUNCTION ITEM DONE] ${event.item.name}, call_id: ${event.item.call_id}`);
                 }
               }
 
@@ -149,7 +160,7 @@ export async function POST(request: NextRequest) {
               if (event.type === "response.reasoning_summary_part.done") {
                 const text = event.part?.text || "";
                 if (text) {
-                  console.log(`[SUMMARY ${event.summary_index}]:`, text);
+                  verboseLog(`[SUMMARY ${event.summary_index}]:`, text);
                   // Cache the summary
                   addSessionSummary(sessionId, text);
                   const message = `event: reasoning_summary\ndata: ${JSON.stringify({ text })}\n\n`;
@@ -159,7 +170,7 @@ export async function POST(request: NextRequest) {
 
               // Collect output text deltas (final answer)
               if (event.type === "response.output_text.delta") {
-                console.log(`[TEXT DELTA] Length: ${event.delta?.length || 0}`);
+                verboseLog(`[TEXT DELTA] Length: ${event.delta?.length || 0}`);
                 fullContent += event.delta || "";
               }
 
@@ -170,11 +181,11 @@ export async function POST(request: NextRequest) {
                   (item) => item && typeof item === "object" && item.type === "function_call"
                 );
 
-                console.log(`[COMPLETED] Content length: ${fullContent.length}, Function calls: ${functionCallItems.length}, Total output items: ${Object.keys(finalToolCalls).length}`);
+                verboseLog(`[COMPLETED] Content length: ${fullContent.length}, Function calls: ${functionCallItems.length}, Total output items: ${Object.keys(finalToolCalls).length}`);
 
                 // If we have function calls, execute them and continue
                 if (functionCallItems.length > 0) {
-                  console.log(`[EXECUTING] ${functionCallItems.length} function(s)`);
+                  verboseLog(`[EXECUTING] ${functionCallItems.length} function(s)`);
 
                   // Build new conversation input with function calls and outputs
                   const newConversationInput = [...conversationInput];
@@ -189,9 +200,9 @@ export async function POST(request: NextRequest) {
                     if (toolCall.name === "fetch_event_images") {
                       try {
                         const parsedArgs = JSON.parse(toolCall.arguments);
-                        console.log(`[FETCHING] Images for: ${parsedArgs.url}`);
+                        verboseLog(`[FETCHING] Images for: ${parsedArgs.url}`);
                         const imageUrls = await fetchEventImages(parsedArgs.url);
-                        console.log(`[FOUND] ${imageUrls.length} image(s)`);
+                        verboseLog(`[FOUND] ${imageUrls.length} image(s)`);
 
                         // Add function output to conversation input (per docs line 122-128)
                         newConversationInput.push({
@@ -211,7 +222,7 @@ export async function POST(request: NextRequest) {
                   }
 
                   // Make a new request with function outputs (per docs line 133-138)
-                  console.log(`[NEW REQUEST] with ${newConversationInput.length} input items`);
+                  verboseLog(`[NEW REQUEST] with ${newConversationInput.length} input items`);
                   await processStream(
                     openai.responses.create({
                       prompt: {
@@ -232,14 +243,14 @@ export async function POST(request: NextRequest) {
 
                 // Final response - has content
                 if (fullContent) {
-                  console.log(`[PARSING] Final content length: ${fullContent.length}`);
-                  console.log(`[PARSING] First 200 chars: ${fullContent.substring(0, 200)}`);
-                  console.log(`[PARSING] Last 200 chars: ${fullContent.substring(fullContent.length - 200)}`);
+                  verboseLog(`[PARSING] Final content length: ${fullContent.length}`);
+                  verboseLog(`[PARSING] First 200 chars: ${fullContent.substring(0, 200)}`);
+                  verboseLog(`[PARSING] Last 200 chars: ${fullContent.substring(fullContent.length - 200)}`);
                   // Parse JSON from the response
                   let parsedResponse;
                   try {
                     parsedResponse = typeof fullContent === "string" ? JSON.parse(fullContent) : fullContent;
-                    console.log(`[PARSED] Successfully parsed bundles, count: ${parsedResponse.bundles?.length || 'unknown'}`);
+                    verboseLog(`[PARSED] Successfully parsed bundles, count: ${parsedResponse.bundles?.length || 'unknown'}`);
                   } catch {
                     console.error("Failed to parse response:", fullContent.substring(0, 500));
                     throw new Error("Invalid response format from AI");
@@ -251,13 +262,13 @@ export async function POST(request: NextRequest) {
                   // Cache the completed bundles
                   completeSession(sessionId, bundlesArray);
 
-                  console.log(`[SENDING] Completed event to client with ${bundlesArray.length} bundles`);
+                  verboseLog(`[SENDING] Completed event to client with ${bundlesArray.length} bundles`);
                   const message = `event: completed\ndata: ${JSON.stringify({ bundles: bundlesArray })}\n\n`;
                   controller.enqueue(encoder.encode(message));
-                  console.log(`[SENT] Completed event sent successfully`);
+                  verboseLog(`[SENT] Completed event sent successfully`);
 
                   // Close the stream when we send final bundles
-                  console.log(`[CLOSING] Stream controller`);
+                  verboseLog(`[CLOSING] Stream controller`);
                   controller.close();
                   return;
                 }

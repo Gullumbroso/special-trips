@@ -156,12 +156,19 @@ export default function LoadingBundlesPage() {
 
             // Update summaries if new ones arrived
             if (pollData.summaries && pollData.summaries.length > 0) {
-              const newSummaries = pollData.summaries.map((text: string, index: number) => ({
-                id: `poll-${index}`,
-                text,
-                timestamp: Date.now() - (pollData.summaries.length - index) * 1000,
-              }));
-              setReasoningSummaries(newSummaries);
+              setReasoningSummaries(prev => {
+                // Only update if we have NEW summaries
+                if (pollData.summaries.length > prev.length) {
+                  // Keep existing summaries with their IDs, add only new ones
+                  const newItems = pollData.summaries.slice(prev.length).map((text: string, index: number) => ({
+                    id: `summary-${prev.length + index}-${Date.now()}`,
+                    text,
+                    timestamp: Date.now(),
+                  }));
+                  return [...prev, ...newItems];
+                }
+                return prev; // No new summaries, don't trigger re-render
+              });
             }
 
             // Check completion

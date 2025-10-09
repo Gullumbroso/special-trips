@@ -19,14 +19,19 @@ export async function GET(
       );
     }
 
+    console.log(`[API] Fetching session: ${sessionId}`);
+
     const session = await getSession(sessionId);
 
     if (!session) {
+      console.log(`[API] Session not found: ${sessionId}`);
       return NextResponse.json(
         { status: 'not_found' },
         { status: 200 }
       );
     }
+
+    console.log(`[API] Session found: ${sessionId}, status: ${session.status}`);
 
     return NextResponse.json({
       status: session.status,
@@ -36,8 +41,16 @@ export async function GET(
     });
   } catch (error) {
     console.error('[API] Error fetching session:', error);
+    console.error('[API] Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown',
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined,
+    });
     return NextResponse.json(
-      { error: 'Failed to fetch session' },
+      {
+        error: 'Failed to fetch session',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }

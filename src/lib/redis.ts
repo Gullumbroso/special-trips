@@ -19,7 +19,13 @@ const SESSION_TTL = 60 * 60; // 1 hour in seconds
  * Get session data by ID
  */
 export async function getSession(sessionId: string): Promise<SessionData | null> {
-  return await redis.get<SessionData>(`session:${sessionId}`);
+  try {
+    return await redis.get<SessionData>(`session:${sessionId}`);
+  } catch (error) {
+    console.error(`[REDIS] Error getting session ${sessionId}:`, error);
+    // Return null on error to avoid breaking the flow
+    return null;
+  }
 }
 
 /**
@@ -40,11 +46,16 @@ export async function createSession(sessionId: string): Promise<void> {
  * Add a summary to the session
  */
 export async function addSessionSummary(sessionId: string, summary: string): Promise<void> {
-  const session = await getSession(sessionId);
-  if (session) {
-    session.summaries.push(summary);
-    await redis.setex(`session:${sessionId}`, SESSION_TTL, session);
-    console.log(`[REDIS] Added summary to ${sessionId}: ${summary.substring(0, 50)}...`);
+  try {
+    const session = await getSession(sessionId);
+    if (session) {
+      session.summaries.push(summary);
+      await redis.setex(`session:${sessionId}`, SESSION_TTL, session);
+      console.log(`[REDIS] Added summary to ${sessionId}: ${summary.substring(0, 50)}...`);
+    }
+  } catch (error) {
+    console.error(`[REDIS] Error adding summary to ${sessionId}:`, error);
+    // Continue execution - don't break the workflow if Redis fails
   }
 }
 
@@ -52,12 +63,17 @@ export async function addSessionSummary(sessionId: string, summary: string): Pro
  * Mark session as complete with bundles
  */
 export async function completeSession(sessionId: string, bundles: any[]): Promise<void> { // eslint-disable-line @typescript-eslint/no-explicit-any
-  const session = await getSession(sessionId);
-  if (session) {
-    session.status = 'complete';
-    session.bundles = bundles;
-    await redis.setex(`session:${sessionId}`, SESSION_TTL, session);
-    console.log(`[REDIS] Completed session ${sessionId} with ${bundles.length} bundles`);
+  try {
+    const session = await getSession(sessionId);
+    if (session) {
+      session.status = 'complete';
+      session.bundles = bundles;
+      await redis.setex(`session:${sessionId}`, SESSION_TTL, session);
+      console.log(`[REDIS] Completed session ${sessionId} with ${bundles.length} bundles`);
+    }
+  } catch (error) {
+    console.error(`[REDIS] Error completing session ${sessionId}:`, error);
+    throw error; // Re-throw for completeSession since it's critical
   }
 }
 

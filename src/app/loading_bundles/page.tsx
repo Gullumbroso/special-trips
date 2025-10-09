@@ -33,12 +33,15 @@ function getOrCreateSessionId(): string {
 
 export default function LoadingBundlesPage() {
   const router = useRouter();
-  const { preferences, bundles, setBundles } = usePreferences();
+  const { preferences, bundles, setBundles, isHydrated } = usePreferences();
   const [reasoningSummaries, setReasoningSummaries] = useState<ReasoningSummary[]>([]);
   const hasInitiatedRef = useRef(false);
   const [sessionId] = useState(getOrCreateSessionId);
 
   useEffect(() => {
+    // Wait for PreferencesContext to hydrate from localStorage
+    if (!isHydrated) return;
+
     if (hasInitiatedRef.current) return;
     hasInitiatedRef.current = true;
 
@@ -187,7 +190,7 @@ export default function LoadingBundlesPage() {
     }
 
     initializeGeneration();
-  }, [preferences, router, setBundles, sessionId, bundles]);
+  }, [preferences, router, setBundles, sessionId, bundles, isHydrated]);
 
   return (
     <div className="relative min-h-screen max-h-screen overflow-hidden flex flex-col px-6 py-8 bg-background">

@@ -140,72 +140,120 @@ export default function LoadingBundlesPage() {
 
         // Start or continue generation
         console.log("🚀 Starting/continuing generation");
-        const response = await fetch("/api/generate-bundles", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            sessionId,
-            preferences,
-          }),
-        });
 
-        if (!response.ok) {
-          router.push("/error?message=" + encodeURIComponent("Failed to generate bundles"));
-          return;
-        }
+        try {
+          const response = await fetch("/api/generate-bundles", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              sessionId,
+              preferences,
+            }),
+          });
 
-        if (!response.body) {
-          router.push("/error?message=" + encodeURIComponent("No response body"));
-          return;
-        }
+          if (!response.ok) {
+            router.push("/error?message=" + encodeURIComponent("Failed to generate bundles"));
+            return;
+          }
 
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
+          if (!response.body) {
+            router.push("/error?message=" + encodeURIComponent("No response body"));
+            return;
+          }
 
-        while (true) {
-          const { done, value } = await reader.read();
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = "";
 
-          if (done) break;
+          while (true) {
+            const { done, value } = await reader.read();
 
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n\n");
-          buffer = lines.pop() || "";
+            if (done) break;
 
-          for (const line of lines) {
-            if (!line.trim()) continue;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n\n");
+            buffer = lines.pop() || "";
 
-            const [eventLine, dataLine] = line.split("\n");
-            if (!eventLine.startsWith("event:") || !dataLine?.startsWith("data:")) continue;
+            for (const line of lines) {
+              if (!line.trim()) continue;
 
-            const eventType = eventLine.slice(6).trim();
-            const data = JSON.parse(dataLine.slice(5).trim());
+              const [eventLine, dataLine] = line.split("\n");
+              if (!eventLine.startsWith("event:") || !dataLine?.startsWith("data:")) continue;
 
-            if (eventType === "debug") {
-              console.log("📤 OpenAI Prompt Variables:");
-              console.log(data.promptVariables);
-            } else if (eventType === "reasoning_summary") {
-              const now = Date.now();
-              const newId = `summary-${now}-${Math.random()}`;
-              setReasoningSummaries((prev) => [...prev, {
-                id: newId,
-                text: data.text,
-                complete: true,
-                timestamp: now
-              }]);
-            } else if (eventType === "completed") {
-              console.log("✅ COMPLETED EVENT RECEIVED:", data.bundles);
-              setBundles(data.bundles);
-              router.push("/bundles");
-            } else if (eventType === "error") {
-              router.push("/error?message=" + encodeURIComponent(data.message || "Unknown error"));
+              const eventType = eventLine.slice(6).trim();
+              const data = JSON.parse(dataLine.slice(5).trim());
+
+              if (eventType === "debug") {
+                console.log("📤 OpenAI Prompt Variables:");
+                console.log(data.promptVariables);
+              } else if (eventType === "reasoning_summary") {
+                const now = Date.now();
+                const newId = `summary-${now}-${Math.random()}`;
+                setReasoningSummaries((prev) => [...prev, {
+                  id: newId,
+                  text: data.text,
+                  complete: true,
+                  timestamp: now
+                }]);
+              } else if (eventType === "completed") {
+                console.log("✅ COMPLETED EVENT RECEIVED:", data.bundles);
+                setBundles(data.bundles);
+                router.push("/bundles");
+              } else if (eventType === "error") {
+                router.push("/error?message=" + encodeURIComponent(data.message || "Unknown error"));
+              }
             }
           }
+        } catch (streamError) {
+          // Network error during streaming - switch to polling mode
+          console.warn("⚠️ Stream interrupted (network change/sleep), switching to polling:", streamError);
+
+          // Start polling for completion
+          console.log("⏳ Starting polling after stream interruption...");
+          const pollInterval = setInterval(async () => {
+            try {
+              const pollResponse = await fetch(`/api/session/${sessionId}`);
+              if (pollResponse.ok) {
+                const pollData = await pollResponse.json();
+
+                // Update summaries if new ones arrived
+                if (pollData.summaries && pollData.summaries.length > 0) {
+                  const newSummaries = pollData.summaries.map((text: string, index: number) => ({
+                    id: `summary-recovery-${index}`,
+                    text,
+                    complete: true,
+                    timestamp: Date.now() - (pollData.summaries.length - index) * 1000,
+                  }));
+                  setReasoningSummaries(newSummaries);
+                }
+
+                if (pollData.status === 'complete' && pollData.bundles) {
+                  console.log("✅ Polling detected completion after recovery!");
+                  clearInterval(pollInterval);
+                  setBundles(pollData.bundles);
+                  router.push("/bundles");
+                } else if (pollData.status === 'error') {
+                  console.log("❌ Polling detected error:", pollData.error);
+                  clearInterval(pollInterval);
+                  router.push("/error?message=" + encodeURIComponent(pollData.error || "Unknown error"));
+                }
+              }
+            } catch (pollError) {
+              console.error("Polling error during recovery:", pollError);
+            }
+          }, 2000); // Poll every 2 seconds
+
+          // Stop polling after 10 minutes max
+          setTimeout(() => {
+            clearInterval(pollInterval);
+            console.log("⏰ Recovery polling timeout reached");
+          }, 10 * 60 * 1000);
         }
       } catch (error) {
         console.error("Error in session/generation:", error);
+        // Only show error page if we can't recover via polling
         router.push("/error?message=" + encodeURIComponent("Network error. Please check your connection."));
       }
     }

@@ -50,7 +50,7 @@ export default function InterestsPage() {
           What type of events you like?
         </h1>
 
-        <p className="text-base font-medium text-text-gray mb-8">Select at least two</p>
+        <p className="text-base font-normal text-black mb-8">Select at least two</p>
 
         <div className="space-y-3 mb-12">
           {INTEREST_OPTIONS.map((option) => (

@@ -25,7 +25,7 @@ export default function BundleCard({ bundle, index }: BundleCardProps) {
 
         {/* Content */}
         <div className="p-6">
-          <div className="flex gap-2 text-sm text-text-gray mb-3">
+          <div className="flex gap-2 text-sm text-black mb-3">
             <span>{formatDateRange(bundle.dateRange)}</span>
             <span>•</span>
             <span>{bundle.city}</span>
@@ -35,7 +35,7 @@ export default function BundleCard({ bundle, index }: BundleCardProps) {
             {bundle.title}
           </h2>
 
-          <p className="text-sm text-text-gray mb-4 line-clamp-3">
+          <p className="text-sm text-black mb-4 line-clamp-3">
             {bundle.description}
           </p>
 
@@ -47,7 +47,7 @@ export default function BundleCard({ bundle, index }: BundleCardProps) {
                 className="inline-flex items-center gap-1 px-3 py-1 bg-secondary/10 rounded-full text-sm"
               >
                 <span>{INTEREST_EMOJIS[event.interestType]}</span>
-                <span className="text-text-gray">{event.title.split(" ")[0]}...</span>
+                <span className="text-black">{event.title.split(" ")[0]}...</span>
               </span>
             ))}
           </div>

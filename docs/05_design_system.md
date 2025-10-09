@@ -12,10 +12,11 @@
 ### Typography 
 Our serif font: Belsey
 Our san-serif font: Inter
+All black unless stated outherwise
 - H1: 32 serif semi-bold
 - H2: 24 serif semi-bold
 - H3: 20 san-serif regular
-- Body: 16 san-serif weight-500
+- Body: 16 san-serif regular
 - Body Small:  14 san-serif regular
 - Buttons: 16px san-serif bold
 - Buttons Small: 14px san-serif bold

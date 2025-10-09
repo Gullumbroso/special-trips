@@ -8,11 +8,10 @@ import Logo from "@/components/ui/Logo";
 interface ReasoningSummary {
   id: string;
   text: string;
-  complete: boolean;
   timestamp: number;
 }
 
-// Generate a unique session ID or retrieve from localStorage
+// Generate or retrieve session ID from localStorage
 function getOrCreateSessionId(): string {
   const STORAGE_KEY = 'special-trips-session-id';
 
@@ -21,7 +20,6 @@ function getOrCreateSessionId(): string {
   let sessionId = localStorage.getItem(STORAGE_KEY);
 
   if (!sessionId) {
-    // Generate UUID v4
     sessionId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
       const r = Math.random() * 16 | 0;
       const v = c === 'x' ? r : (r & 0x3 | 0x8);
@@ -35,231 +33,161 @@ function getOrCreateSessionId(): string {
 
 export default function LoadingBundlesPage() {
   const router = useRouter();
-  const { preferences, setBundles } = usePreferences();
+  const { preferences, bundles, setBundles } = usePreferences();
   const [reasoningSummaries, setReasoningSummaries] = useState<ReasoningSummary[]>([]);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const hasRequestedRef = useRef(false);
+  const hasInitiatedRef = useRef(false);
   const [sessionId] = useState(getOrCreateSessionId);
 
   useEffect(() => {
-    // Prevent multiple requests (especially in React Strict Mode)
-    if (hasRequestedRef.current) {
-      console.log("⚠️ Preventing duplicate request");
-      return;
-    }
-    hasRequestedRef.current = true;
+    if (hasInitiatedRef.current) return;
+    hasInitiatedRef.current = true;
 
-    async function checkSessionAndGenerate() {
+    async function initializeGeneration() {
       try {
-        if (!sessionId) {
-          console.log("⚠️ No session ID available");
+        // FIRST: Check if we already have bundles in localStorage (via PreferencesContext)
+        if (bundles && bundles.length > 0) {
+          console.log("✅ Bundles already cached, navigating to /bundles");
+          router.push("/bundles");
           return;
         }
 
-        console.log(`🔍 Checking session state for: ${sessionId}`);
+        if (!sessionId) {
+          console.error("⚠️ No session ID available");
+          return;
+        }
 
-        // First, check if we have existing session state
-        const sessionResponse = await fetch(`/api/session/${sessionId}`);
+        console.log(`🔍 Checking session ${sessionId}`);
 
-        if (sessionResponse.ok) {
-          const sessionData = await sessionResponse.json();
-          console.log(`📊 Session state:`, sessionData.status);
+        // Check if session already exists in Redis
+        const checkResponse = await fetch(`/api/session/${sessionId}`);
 
-          // If session is complete, navigate to bundles immediately
+        if (checkResponse.ok) {
+          const sessionData = await checkResponse.json();
+          console.log(`📊 Session status: ${sessionData.status}`);
+
+          // Case 1: Session already complete
           if (sessionData.status === 'complete' && sessionData.bundles) {
-            console.log("✅ Session already complete, loading bundles");
+            console.log("✅ Session complete, loading bundles");
+            // Save to localStorage via context
             setBundles(sessionData.bundles);
             router.push("/bundles");
             return;
           }
 
-          // If session has error, show error
+          // Case 2: Session has error
           if (sessionData.status === 'error') {
-            console.log("❌ Session has error:", sessionData.error);
+            console.error("❌ Session error:", sessionData.error);
             router.push("/error?message=" + encodeURIComponent(sessionData.error || "Unknown error"));
             return;
           }
 
-          // If session is generating, restore summaries and poll for completion
+          // Case 3: Session is generating - restore summaries and poll
           if (sessionData.status === 'generating') {
-            console.log(`🔄 Session still generating with ${sessionData.summaries?.length || 0} summaries`);
+            console.log(`🔄 Resuming session with ${sessionData.summaries?.length || 0} summaries`);
+
             if (sessionData.summaries && sessionData.summaries.length > 0) {
-              const restoredSummaries = sessionData.summaries.map((text: string, index: number) => ({
-                id: `summary-restored-${index}`,
+              const restored = sessionData.summaries.map((text: string, index: number) => ({
+                id: `restored-${index}`,
                 text,
-                complete: true,
                 timestamp: Date.now() - (sessionData.summaries.length - index) * 1000,
               }));
-              setReasoningSummaries(restoredSummaries);
+              setReasoningSummaries(restored);
             }
 
-            // Poll for completion instead of starting new stream
-            console.log("⏳ Polling for session completion...");
-            const pollInterval = setInterval(async () => {
-              try {
-                const pollResponse = await fetch(`/api/session/${sessionId}`);
-                if (pollResponse.ok) {
-                  const pollData = await pollResponse.json();
-
-                  // Update summaries if new ones arrived
-                  if (pollData.summaries && pollData.summaries.length > sessionData.summaries?.length) {
-                    const newSummaries = pollData.summaries.map((text: string, index: number) => ({
-                      id: `summary-poll-${index}`,
-                      text,
-                      complete: true,
-                      timestamp: Date.now() - (pollData.summaries.length - index) * 1000,
-                    }));
-                    setReasoningSummaries(newSummaries);
-                  }
-
-                  if (pollData.status === 'complete' && pollData.bundles) {
-                    console.log("✅ Polling detected completion!");
-                    clearInterval(pollInterval);
-                    setBundles(pollData.bundles);
-                    router.push("/bundles");
-                  } else if (pollData.status === 'error') {
-                    console.log("❌ Polling detected error:", pollData.error);
-                    clearInterval(pollInterval);
-                    router.push("/error?message=" + encodeURIComponent(pollData.error || "Unknown error"));
-                  }
-                }
-              } catch (error) {
-                console.error("Polling error:", error);
-              }
-            }, 2000); // Poll every 2 seconds
-
-            // Stop polling after 10 minutes max
-            setTimeout(() => {
-              clearInterval(pollInterval);
-              console.log("⏰ Polling timeout reached");
-            }, 10 * 60 * 1000);
-
-            return; // Don't start a new generation stream
-          }
-        }
-
-        // Start or continue generation
-        console.log("🚀 Starting/continuing generation");
-
-        try {
-          const response = await fetch("/api/generate-bundles", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              sessionId,
-              preferences,
-            }),
-          });
-
-          if (!response.ok) {
-            router.push("/error?message=" + encodeURIComponent("Failed to generate bundles"));
+            // Start polling
+            startPolling();
             return;
           }
 
-          if (!response.body) {
-            router.push("/error?message=" + encodeURIComponent("No response body"));
+          // Case 4: Session not found - create new one
+          if (sessionData.status === 'not_found') {
+            console.log("🆕 Creating new session");
+            await startNewGeneration();
             return;
           }
-
-          const reader = response.body.getReader();
-          const decoder = new TextDecoder();
-          let buffer = "";
-
-          while (true) {
-            const { done, value } = await reader.read();
-
-            if (done) break;
-
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split("\n\n");
-            buffer = lines.pop() || "";
-
-            for (const line of lines) {
-              if (!line.trim()) continue;
-
-              const [eventLine, dataLine] = line.split("\n");
-              if (!eventLine.startsWith("event:") || !dataLine?.startsWith("data:")) continue;
-
-              const eventType = eventLine.slice(6).trim();
-              const data = JSON.parse(dataLine.slice(5).trim());
-
-              if (eventType === "debug") {
-                console.log("📤 OpenAI Prompt Variables:");
-                console.log(data.promptVariables);
-              } else if (eventType === "reasoning_summary") {
-                const now = Date.now();
-                const newId = `summary-${now}-${Math.random()}`;
-                setReasoningSummaries((prev) => [...prev, {
-                  id: newId,
-                  text: data.text,
-                  complete: true,
-                  timestamp: now
-                }]);
-              } else if (eventType === "completed") {
-                console.log("✅ COMPLETED EVENT RECEIVED:", data.bundles);
-                setBundles(data.bundles);
-                router.push("/bundles");
-              } else if (eventType === "error") {
-                router.push("/error?message=" + encodeURIComponent(data.message || "Unknown error"));
-              }
-            }
-          }
-        } catch (streamError) {
-          // Network error during streaming - switch to polling mode
-          console.warn("⚠️ Stream interrupted (network change/sleep), switching to polling:", streamError);
-
-          // Start polling for completion
-          console.log("⏳ Starting polling after stream interruption...");
-          const pollInterval = setInterval(async () => {
-            try {
-              const pollResponse = await fetch(`/api/session/${sessionId}`);
-              if (pollResponse.ok) {
-                const pollData = await pollResponse.json();
-
-                // Update summaries if new ones arrived
-                if (pollData.summaries && pollData.summaries.length > 0) {
-                  const newSummaries = pollData.summaries.map((text: string, index: number) => ({
-                    id: `summary-recovery-${index}`,
-                    text,
-                    complete: true,
-                    timestamp: Date.now() - (pollData.summaries.length - index) * 1000,
-                  }));
-                  setReasoningSummaries(newSummaries);
-                }
-
-                if (pollData.status === 'complete' && pollData.bundles) {
-                  console.log("✅ Polling detected completion after recovery!");
-                  clearInterval(pollInterval);
-                  setBundles(pollData.bundles);
-                  router.push("/bundles");
-                } else if (pollData.status === 'error') {
-                  console.log("❌ Polling detected error:", pollData.error);
-                  clearInterval(pollInterval);
-                  router.push("/error?message=" + encodeURIComponent(pollData.error || "Unknown error"));
-                }
-              }
-            } catch (pollError) {
-              console.error("Polling error during recovery:", pollError);
-            }
-          }, 2000); // Poll every 2 seconds
-
-          // Stop polling after 10 minutes max
-          setTimeout(() => {
-            clearInterval(pollInterval);
-            console.log("⏰ Recovery polling timeout reached");
-          }, 10 * 60 * 1000);
+        } else {
+          // Failed to check session - start new
+          console.log("🆕 Starting fresh generation");
+          await startNewGeneration();
         }
       } catch (error) {
-        console.error("Error in session/generation:", error);
-        // Only show error page if we can't recover via polling
-        router.push("/error?message=" + encodeURIComponent("Network error. Please check your connection."));
+        console.error("Error initializing:", error);
+        router.push("/error?message=" + encodeURIComponent("Failed to start generation"));
       }
     }
 
-    checkSessionAndGenerate();
-  }, [preferences, router, setBundles, sessionId]);
+    async function startNewGeneration() {
+      try {
+        const response = await fetch("/api/generate-bundles", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionId,
+            preferences,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to start generation");
+        }
+
+        console.log("✅ Generation started");
+
+        // Start polling
+        startPolling();
+      } catch (error) {
+        console.error("Error starting generation:", error);
+        router.push("/error?message=" + encodeURIComponent("Failed to start generation"));
+      }
+    }
+
+    function startPolling() {
+      console.log("⏳ Starting polling...");
+
+      const pollInterval = setInterval(async () => {
+        try {
+          const pollResponse = await fetch(`/api/session/${sessionId}`);
+
+          if (pollResponse.ok) {
+            const pollData = await pollResponse.json();
+
+            // Update summaries if new ones arrived
+            if (pollData.summaries && pollData.summaries.length > 0) {
+              const newSummaries = pollData.summaries.map((text: string, index: number) => ({
+                id: `poll-${index}`,
+                text,
+                timestamp: Date.now() - (pollData.summaries.length - index) * 1000,
+              }));
+              setReasoningSummaries(newSummaries);
+            }
+
+            // Check completion
+            if (pollData.status === 'complete' && pollData.bundles) {
+              console.log("✅ Generation complete!");
+              clearInterval(pollInterval);
+              // Save bundles to localStorage via context
+              setBundles(pollData.bundles);
+              router.push("/bundles");
+            } else if (pollData.status === 'error') {
+              console.error("❌ Generation error:", pollData.error);
+              clearInterval(pollInterval);
+              router.push("/error?message=" + encodeURIComponent(pollData.error || "Unknown error"));
+            }
+          }
+        } catch (error) {
+          console.error("Polling error:", error);
+        }
+      }, 2000); // Poll every 2 seconds
+
+      // Cleanup after 15 minutes max
+      setTimeout(() => {
+        clearInterval(pollInterval);
+        console.log("⏰ Polling timeout");
+      }, 15 * 60 * 1000);
+    }
+
+    initializeGeneration();
+  }, [preferences, router, setBundles, sessionId, bundles]);
 
   return (
     <div className="relative min-h-screen max-h-screen overflow-hidden flex flex-col px-6 py-8 bg-background">
@@ -290,7 +218,7 @@ export default function LoadingBundlesPage() {
 
         {/* Reasoning summaries */}
         {reasoningSummaries.length > 0 && (
-          <div ref={containerRef} className="relative">
+          <div className="relative">
             <div className="flex flex-col-reverse gap-2">
               {reasoningSummaries.map((summary, arrayIndex) => {
                 const trimmedText = summary.text.trim();
@@ -309,7 +237,7 @@ export default function LoadingBundlesPage() {
                   <div
                     key={summary.id}
                     style={{
-                      opacity: isLatest ? .85 : 0.25,
+                      opacity: isLatest ? 0.85 : 0.25,
                       animation: isLatest ? 'fade-in-slide 0.5s cubic-bezier(0.4, 0, 0.2, 1)' : 'none'
                     }}
                   >
@@ -324,7 +252,7 @@ export default function LoadingBundlesPage() {
         )}
       </div>
 
-      {/* Bottom gradient overlay */}
+      {/* Bottom gradient */}
       <div className="fixed bottom-0 left-0 right-0" style={{ height: '512px' }}>
         <div className="w-full h-full bg-gradient-to-t from-background to-transparent pointer-events-none" />
       </div>

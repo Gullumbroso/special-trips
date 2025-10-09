@@ -67,9 +67,9 @@ export default function SpotifyLoadingPage() {
   }, [router, updateSpotifyMusicProfile, updateMusicProfile]);
 
   return (
-    <div className="min-h-screen flex flex-col px-6 py-8">
+    <div className="min-h-screen flex flex-col px-6 pt-4 pb-8">
       {/* Logo */}
-      <div className="mb-12">
+      <div className="mb-20 -ml-2">
         <Logo size="md" />
       </div>
 
@@ -79,7 +79,7 @@ export default function SpotifyLoadingPage() {
           Connecting Spotify...
         </h1>
 
-        <p className="text-base font-medium text-text-gray mb-6">
+        <p className="text-base font-normal text-black mb-6">
           We&apos;re connecting Spotify and learning your music taste.
           <br />
           This might take a few moments.

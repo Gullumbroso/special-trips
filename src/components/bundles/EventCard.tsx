@@ -49,18 +49,18 @@ export default function EventCard({ event, isMinor = false }: EventCardProps) {
         {/* Interest Badge */}
         <div className="inline-flex items-center gap-1 px-3 py-1 bg-secondary/10 rounded-full text-sm mb-3">
           <span>{INTEREST_EMOJIS[event.interestType]}</span>
-          <span className="text-text-gray">{INTEREST_LABELS[event.interestType]}</span>
+          <span className="text-black">{INTEREST_LABELS[event.interestType]}</span>
         </div>
 
         <h3 className="font-serif text-xl font-semibold mb-2">
           {event.title}
         </h3>
 
-        <div className="text-sm text-text-gray mb-4">
+        <div className="text-sm text-black mb-4">
           {formatDateRange(event.dateRange)}
         </div>
 
-        <p className="text-base font-medium text-text-gray mb-4 leading-relaxed">
+        <p className="text-base font-normal text-black mb-4 leading-relaxed">
           {event.fullDescription}
         </p>
 

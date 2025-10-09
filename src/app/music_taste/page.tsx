@@ -148,7 +148,7 @@ function MusicTasteContent() {
               What type of music are you into?
             </h1>
 
-            <p className="text-base font-medium text-text-gray mb-6">
+            <p className="text-base font-normal text-black mb-6">
               Connect your Spotify for a detailed understanding of your musical tastes.
             </p>
 
@@ -166,11 +166,11 @@ function MusicTasteContent() {
 
             <div className="flex items-center gap-4 mb-8">
               <div className="flex-1 h-px bg-gray-300"></div>
-              <span className="text-gray-500 text-sm">or</span>
+              <span className="text-black text-sm">or</span>
               <div className="flex-1 h-px bg-gray-300"></div>
             </div>
 
-            <p className="text-base font-medium text-text-gray mb-4">
+            <p className="text-base font-normal text-black mb-4">
               Describe your preferred genres, favorite artists, or any other detail about your musical taste.
             </p>
 

@@ -89,7 +89,7 @@ export default function BundleDetailsPage() {
       <div className="px-6 py-8">
         {/* Header Info */}
         <div className="mb-6">
-          <div className="flex gap-2 text-sm text-text-gray mb-3">
+          <div className="flex gap-2 text-sm text-black mb-3">
             <span>{formatDateRange(bundle.dateRange)}</span>
             <span>•</span>
             <span>{bundle.city}</span>
@@ -99,7 +99,7 @@ export default function BundleDetailsPage() {
             {bundle.title}
           </h1>
 
-          <p className="text-base font-medium text-text-gray leading-relaxed">
+          <p className="text-base font-normal text-black leading-relaxed">
             {bundle.description}
           </p>
         </div>
@@ -110,7 +110,7 @@ export default function BundleDetailsPage() {
             Key Events ({bundle.keyEvents.length})
           </h3>
           {bundle.minorEvents.length > 0 && (
-            <p className="text-text-gray text-sm">
+            <p className="text-black text-sm">
               + {bundle.minorEvents.length} other interesting events
             </p>
           )}

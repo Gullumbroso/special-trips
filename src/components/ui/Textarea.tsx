@@ -8,7 +8,7 @@ export default function Textarea({ label, className = "", ...props }: TextareaPr
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-sm font-medium text-foreground mb-2">
+        <label className="block text-sm font-normal text-black mb-2">
           {label}
         </label>
       )}

@@ -31,7 +31,7 @@ export default function OtherDetailsPage() {
           Any other preferences?
         </h1>
 
-        <p className="text-base font-medium text-text-gray mb-8">(Optional)</p>
+        <p className="text-base font-normal text-black mb-8">(Optional)</p>
 
         <Textarea
           value={otherPreferences}

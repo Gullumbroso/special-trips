@@ -30,6 +30,7 @@ export const generateBundles = inngest.createFunction(
   { event: 'bundle.generate' },
   async ({ event }: { event: GenerateBundlesEvent }) => {
     const { sessionId, preferences } = event.data;
+    const startTime = Date.now();
 
     try {
       console.log(`[INNGEST] Starting bundle generation for session ${sessionId}`);
@@ -110,7 +111,8 @@ export const generateBundles = inngest.createFunction(
 
             // Execute function calls if any
             if (functionCallItems.length > 0) {
-              console.log(`[INNGEST] Executing ${functionCallItems.length} function(s)`);
+              const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+              console.log(`[INNGEST] [${elapsed}s] Executing ${functionCallItems.length} function(s)`);
 
               const newConversationInput = [...conversationInput];
 
@@ -120,10 +122,12 @@ export const generateBundles = inngest.createFunction(
               }
 
               // Execute functions
+              let imagesFetched = 0;
               for (const toolCall of functionCallItems) {
                 if (toolCall.name === 'fetch_event_images') {
                   try {
                     const parsedArgs = JSON.parse(toolCall.arguments);
+                    console.log(`[INNGEST] [${((Date.now() - startTime) / 1000).toFixed(1)}s] Fetching images ${++imagesFetched}/${functionCallItems.length} for: ${parsedArgs.url}`);
                     const imageUrls = await fetchEventImages(parsedArgs.url);
                     newConversationInput.push({
                       type: 'function_call_output',
@@ -140,6 +144,8 @@ export const generateBundles = inngest.createFunction(
                   }
                 }
               }
+
+              console.log(`[INNGEST] [${((Date.now() - startTime) / 1000).toFixed(1)}s] Image fetching complete, continuing OpenAI stream...`);
 
               // Continue with new request
               await processStream(
@@ -162,11 +168,12 @@ export const generateBundles = inngest.createFunction(
 
             // Final response with content
             if (fullContent) {
-              console.log(`[INNGEST] Parsing final content, length: ${fullContent.length}`);
+              const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+              console.log(`[INNGEST] [${elapsed}s] Parsing final content, length: ${fullContent.length}`);
               const parsedResponse = JSON.parse(fullContent);
               const bundlesArray: TripBundle[] = parsedResponse.bundles || [];
 
-              console.log(`[INNGEST] Completing session with ${bundlesArray.length} bundles`);
+              console.log(`[INNGEST] [${elapsed}s] Completing session with ${bundlesArray.length} bundles`);
               await completeSession(sessionId, bundlesArray);
               return;
             }
@@ -190,9 +197,11 @@ export const generateBundles = inngest.createFunction(
         []
       );
 
-      console.log(`[INNGEST] Successfully completed session ${sessionId}`);
+      const totalElapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      console.log(`[INNGEST] Successfully completed session ${sessionId} in ${totalElapsed}s`);
     } catch (error) {
-      console.error(`[INNGEST] Error in session ${sessionId}:`, error);
+      const totalElapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      console.error(`[INNGEST] Error in session ${sessionId} after ${totalElapsed}s:`, error);
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       await errorSession(sessionId, errorMsg);
       throw error; // Let Inngest handle retries

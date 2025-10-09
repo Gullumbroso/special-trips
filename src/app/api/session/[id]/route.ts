@@ -22,9 +22,10 @@ export async function GET(
     const session = getSession(sessionId);
 
     if (!session) {
+      // Return 200 with not_found status - this is expected when starting fresh
       return NextResponse.json(
         { status: 'not_found' },
-        { status: 404 }
+        { status: 200 }
       );
     }
 

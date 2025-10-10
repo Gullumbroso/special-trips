@@ -56,6 +56,16 @@ export default function LoadingBundlesPage() {
         const storedResponseId = getStoredResponseId();
         const storedCursor = getStoredCursor();
 
+        // If we have cursor but no responseId, something went wrong - clear cursor
+        if (storedCursor && !storedResponseId) {
+          console.warn("⚠️ Found cursor but no responseId - clearing cursor");
+          localStorage.removeItem(STORAGE_KEY_CURSOR);
+          // Start fresh
+          console.log("🆕 Starting fresh generation");
+          startStreaming(null, null);
+          return;
+        }
+
         if (storedResponseId) {
           console.log(`🔍 Found stored response ${storedResponseId}`);
           setResponseId(storedResponseId);

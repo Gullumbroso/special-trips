@@ -40,8 +40,6 @@ async function handleStreaming(request: NextRequest) {
       // Resume existing stream from cursor
       console.log(`[API] Resuming stream for ${responseId} from cursor ${startingAfter.substring(0, 20)}...`);
 
-      // Note: SDK support for resuming is coming soon, for now we'll use the API directly
-      // For now, we'll create a new stream and OpenAI will handle the cursor internally
       const response = await fetch(`https://api.openai.com/v1/responses/${responseId}?stream=true&starting_after=${startingAfter}`, {
         headers: {
           'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
@@ -53,8 +51,35 @@ async function handleStreaming(request: NextRequest) {
         throw new Error(`Failed to resume stream: ${response.statusText}`);
       }
 
-      // Return the stream directly
-      return new Response(response.body, {
+      // Need to inject response_id event for resumed streams
+      // OpenAI doesn't send it again when resuming
+      const encoder = new TextEncoder();
+      const readableStream = new ReadableStream({
+        async start(controller) {
+          // Send response_id event first
+          const idMessage = `event: response_id\ndata: ${JSON.stringify({
+            responseId: responseId,
+            cursor: startingAfter
+          })}\n\n`;
+          controller.enqueue(encoder.encode(idMessage));
+
+          // Then pipe the rest of the stream
+          const reader = response.body?.getReader();
+          if (!reader) return;
+
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              controller.enqueue(value);
+            }
+          } finally {
+            controller.close();
+          }
+        }
+      });
+
+      return new Response(readableStream, {
         headers: {
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
@@ -76,7 +101,33 @@ async function handleStreaming(request: NextRequest) {
         throw new Error(`Failed to resume stream: ${response.statusText}`);
       }
 
-      return new Response(response.body, {
+      // Need to inject response_id event for resumed streams
+      const encoder = new TextEncoder();
+      const readableStream = new ReadableStream({
+        async start(controller) {
+          // Send response_id event first
+          const idMessage = `event: response_id\ndata: ${JSON.stringify({
+            responseId: responseId
+          })}\n\n`;
+          controller.enqueue(encoder.encode(idMessage));
+
+          // Then pipe the rest of the stream
+          const reader = response.body?.getReader();
+          if (!reader) return;
+
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              controller.enqueue(value);
+            }
+          } finally {
+            controller.close();
+          }
+        }
+      });
+
+      return new Response(readableStream, {
         headers: {
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',

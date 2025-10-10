@@ -37,18 +37,29 @@ export async function GET(
     const response = await openai.responses.retrieve(id);
 
     console.log(`[OpenAI Proxy] Response status: ${response.status}`);
+    console.log(`[OpenAI Proxy] Output items count: ${response.output?.length || 0}`);
+
+    // Log output types for debugging
+    if (response.output && response.output.length > 0) {
+      const outputTypes = response.output.map(item => item.type);
+      console.log(`[OpenAI Proxy] Output types: ${outputTypes.join(', ')}`);
+    }
 
     // Extract reasoning summaries from output
     const rawSummaries = response.output
       ?.filter(item => item.type === 'reasoning')
       .flatMap(item => {
+        console.log(`[OpenAI Proxy] Reasoning item:`, JSON.stringify(item).substring(0, 200));
         // Extract summary array from reasoning items
         if ('summary' in item && Array.isArray(item.summary)) {
+          console.log(`[OpenAI Proxy] Found summary array with ${item.summary.length} items`);
           return item.summary;
         }
         return [];
       })
       || [];
+
+    console.log(`[OpenAI Proxy] Raw summaries count: ${rawSummaries.length}`);
 
     // Extract titles from summaries (same logic as old Inngest worker)
     // Summary items have a 'text' property containing the summary string
@@ -57,7 +68,7 @@ export async function GET(
       return extractSummaryTitle(text);
     });
 
-    console.log(`[OpenAI Proxy] Found ${summaries.length} reasoning summaries`);
+    console.log(`[OpenAI Proxy] Extracted ${summaries.length} reasoning summaries`);
 
     // Extract bundles if completed
     let bundles = null;

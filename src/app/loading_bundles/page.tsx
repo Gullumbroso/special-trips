@@ -104,32 +104,81 @@ export default function LoadingBundlesPage() {
 
     async function startNewGeneration() {
       try {
-        const response = await fetch("/api/generate-bundles", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            preferences,
-          }),
+        console.log("🚀 Starting SSE stream...");
+
+        // Use EventSource for Server-Sent Events streaming
+        const eventSource = new EventSource("/api/generate-bundles?" + new URLSearchParams({
+          preferences: JSON.stringify(preferences),
+        }));
+
+        let receivedResponseId = '';
+
+        eventSource.addEventListener('response_id', (e) => {
+          const data = JSON.parse(e.data);
+          receivedResponseId = data.responseId;
+          console.log(`✅ Received response ID: ${receivedResponseId}`);
+
+          // Store the response ID
+          localStorage.setItem('special-trips-response-id', receivedResponseId);
+          setResponseId(receivedResponseId);
         });
 
-        if (!response.ok) {
-          throw new Error("Failed to start generation");
-        }
+        eventSource.addEventListener('summary', (e) => {
+          const data = JSON.parse(e.data);
+          console.log(`📝 Summary: ${data.text}`);
 
-        const data = await response.json();
-        const newResponseId = data.responseId;
+          setReasoningSummaries(prev => [...prev, {
+            id: `summary-${Date.now()}-${Math.random()}`,
+            text: data.text,
+            timestamp: Date.now(),
+          }]);
+        });
 
-        console.log(`✅ Generation started with response ID: ${newResponseId}`);
+        eventSource.addEventListener('completed', (e) => {
+          const data = JSON.parse(e.data);
+          console.log(`✅ Generation completed: ${data.responseId}`);
+          eventSource.close();
 
-        // Store the new response ID from OpenAI
-        localStorage.setItem('special-trips-response-id', newResponseId);
-        setResponseId(newResponseId);
+          // Fetch final bundles
+          fetchCompletedBundles(data.responseId);
+        });
 
-        // Start polling with the new response ID
-        startPolling(newResponseId);
+        eventSource.addEventListener('error', (e) => {
+          console.error("❌ SSE error:", e);
+          eventSource.close();
+          router.push("/error?message=" + encodeURIComponent("Stream connection error"));
+        });
+
+        eventSource.onerror = () => {
+          console.error("❌ EventSource connection error");
+          eventSource.close();
+
+          // If we have a response ID, try to resume via polling
+          if (receivedResponseId) {
+            console.log("🔄 Falling back to polling...");
+            startPolling(receivedResponseId);
+          } else {
+            router.push("/error?message=" + encodeURIComponent("Failed to start generation"));
+          }
+        };
       } catch (error) {
         console.error("Error starting generation:", error);
         router.push("/error?message=" + encodeURIComponent("Failed to start generation"));
+      }
+    }
+
+    async function fetchCompletedBundles(id: string) {
+      try {
+        const response = await fetch(`/api/openai/responses/${id}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.bundles) {
+            setBundles(data.bundles);
+            router.push("/bundles");
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching bundles:", error);
       }
     }
 
@@ -209,7 +258,9 @@ export default function LoadingBundlesPage() {
         <p className="text-base font-medium text-text-gray mb-6">
           This might take a few minutes.
           <br />
-          We&apos;ll let you know once we&apos;re done.
+          {reasoningSummaries.length > 0
+            ? "We'll let you know once we're done."
+            : "Generating your personalized trip bundles in the background..."}
         </p>
 
         {/* Spinner */}

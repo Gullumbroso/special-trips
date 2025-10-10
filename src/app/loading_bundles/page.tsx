@@ -11,24 +11,13 @@ interface ReasoningSummary {
   timestamp: number;
 }
 
-// Generate or retrieve OpenAI response ID from localStorage
-function getOrCreateResponseId(): string {
+// Retrieve OpenAI response ID from localStorage (if exists)
+function getStoredResponseId(): string | null {
   const STORAGE_KEY = 'special-trips-response-id';
 
-  if (typeof window === 'undefined') return '';
+  if (typeof window === 'undefined') return null;
 
-  let responseId = localStorage.getItem(STORAGE_KEY);
-
-  if (!responseId) {
-    responseId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-      const r = Math.random() * 16 | 0;
-      const v = c === 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
-    localStorage.setItem(STORAGE_KEY, responseId);
-  }
-
-  return responseId;
+  return localStorage.getItem(STORAGE_KEY);
 }
 
 export default function LoadingBundlesPage() {
@@ -36,7 +25,7 @@ export default function LoadingBundlesPage() {
   const { preferences, bundles, setBundles, isHydrated } = usePreferences();
   const [reasoningSummaries, setReasoningSummaries] = useState<ReasoningSummary[]>([]);
   const hasInitiatedRef = useRef(false);
-  const [responseId] = useState(getOrCreateResponseId);
+  const [responseId, setResponseId] = useState<string | null>(null);
 
   useEffect(() => {
     // Wait for PreferencesContext to hydrate from localStorage
@@ -54,58 +43,59 @@ export default function LoadingBundlesPage() {
           return;
         }
 
-        if (!responseId) {
-          console.error("⚠️ No response ID available");
-          return;
-        }
+        // SECOND: Check if we have a stored OpenAI response ID
+        const storedResponseId = getStoredResponseId();
 
-        console.log(`🔍 Checking OpenAI response ${responseId}`);
+        if (storedResponseId) {
+          console.log(`🔍 Checking stored OpenAI response ${storedResponseId}`);
+          setResponseId(storedResponseId);
 
-        // Check if OpenAI response already exists
-        const checkResponse = await fetch(`/api/openai/responses/${responseId}`);
+          // Check if OpenAI response already exists
+          const checkResponse = await fetch(`/api/openai/responses/${storedResponseId}`);
 
-        if (checkResponse.ok) {
-          const responseData = await checkResponse.json();
-          console.log(`📊 Response status: ${responseData.status}`);
+          if (checkResponse.ok) {
+            const responseData = await checkResponse.json();
+            console.log(`📊 Response status: ${responseData.status}`);
 
-          // Case 1: Response already completed
-          if (responseData.status === 'completed' && responseData.bundles) {
-            console.log("✅ Response complete, loading bundles");
-            // Save to localStorage via context
-            setBundles(responseData.bundles);
-            router.push("/bundles");
-            return;
-          }
-
-          // Case 2: Response failed
-          if (responseData.status === 'failed') {
-            console.error("❌ Response failed:", responseData.error);
-            router.push("/error?message=" + encodeURIComponent(responseData.error || "Unknown error"));
-            return;
-          }
-
-          // Case 3: Response is in progress or queued - restore summaries and poll
-          if (responseData.status === 'in_progress' || responseData.status === 'queued') {
-            console.log(`🔄 Resuming response (${responseData.status}) with ${responseData.summaries?.length || 0} summaries`);
-
-            if (responseData.summaries && responseData.summaries.length > 0) {
-              const restored = responseData.summaries.map((text: string, index: number) => ({
-                id: `restored-${index}`,
-                text,
-                timestamp: Date.now() - (responseData.summaries.length - index) * 1000,
-              }));
-              setReasoningSummaries(restored);
+            // Case 1: Response already completed
+            if (responseData.status === 'completed' && responseData.bundles) {
+              console.log("✅ Response complete, loading bundles");
+              // Save to localStorage via context
+              setBundles(responseData.bundles);
+              router.push("/bundles");
+              return;
             }
 
-            // Start polling
-            startPolling();
-            return;
+            // Case 2: Response failed
+            if (responseData.status === 'failed') {
+              console.error("❌ Response failed:", responseData.error);
+              router.push("/error?message=" + encodeURIComponent(responseData.error || "Unknown error"));
+              return;
+            }
+
+            // Case 3: Response is in progress or queued - restore summaries and poll
+            if (responseData.status === 'in_progress' || responseData.status === 'queued') {
+              console.log(`🔄 Resuming response (${responseData.status}) with ${responseData.summaries?.length || 0} summaries`);
+
+              if (responseData.summaries && responseData.summaries.length > 0) {
+                const restored = responseData.summaries.map((text: string, index: number) => ({
+                  id: `restored-${index}`,
+                  text,
+                  timestamp: Date.now() - (responseData.summaries.length - index) * 1000,
+                }));
+                setReasoningSummaries(restored);
+              }
+
+              // Start polling
+              startPolling(storedResponseId);
+              return;
+            }
           }
-        } else {
-          // Failed to check response - start new
-          console.log("🆕 Starting fresh generation");
-          await startNewGeneration();
         }
+
+        // If no stored response or check failed, start new generation
+        console.log("🆕 Starting fresh generation");
+        await startNewGeneration();
       } catch (error) {
         console.error("Error initializing:", error);
         router.push("/error?message=" + encodeURIComponent("Failed to start generation"));
@@ -133,29 +123,27 @@ export default function LoadingBundlesPage() {
 
         // Store the new response ID from OpenAI
         localStorage.setItem('special-trips-response-id', newResponseId);
+        setResponseId(newResponseId);
 
-        // Start polling
-        startPolling();
+        // Start polling with the new response ID
+        startPolling(newResponseId);
       } catch (error) {
         console.error("Error starting generation:", error);
         router.push("/error?message=" + encodeURIComponent("Failed to start generation"));
       }
     }
 
-    function startPolling() {
-      console.log("⏳ Starting polling...");
+    function startPolling(idToUse: string) {
+      console.log(`⏳ Starting polling for response ${idToUse}...`);
 
-      // Get the current responseId from state or localStorage
-      const currentResponseId = responseId || localStorage.getItem('special-trips-response-id');
-
-      if (!currentResponseId) {
-        console.error("⚠️ No response ID available for polling");
+      if (!idToUse) {
+        console.error("⚠️ No response ID provided for polling");
         return;
       }
 
       const pollInterval = setInterval(async () => {
         try {
-          const pollResponse = await fetch(`/api/openai/responses/${currentResponseId}`);
+          const pollResponse = await fetch(`/api/openai/responses/${idToUse}`);
 
           if (pollResponse.ok) {
             const pollData = await pollResponse.json();

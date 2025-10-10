@@ -11,24 +11,24 @@ interface ReasoningSummary {
   timestamp: number;
 }
 
-// Generate or retrieve session ID from localStorage
-function getOrCreateSessionId(): string {
-  const STORAGE_KEY = 'special-trips-session-id';
+// Generate or retrieve OpenAI response ID from localStorage
+function getOrCreateResponseId(): string {
+  const STORAGE_KEY = 'special-trips-response-id';
 
   if (typeof window === 'undefined') return '';
 
-  let sessionId = localStorage.getItem(STORAGE_KEY);
+  let responseId = localStorage.getItem(STORAGE_KEY);
 
-  if (!sessionId) {
-    sessionId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+  if (!responseId) {
+    responseId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
       const r = Math.random() * 16 | 0;
       const v = c === 'x' ? r : (r & 0x3 | 0x8);
       return v.toString(16);
     });
-    localStorage.setItem(STORAGE_KEY, sessionId);
+    localStorage.setItem(STORAGE_KEY, responseId);
   }
 
-  return sessionId;
+  return responseId;
 }
 
 export default function LoadingBundlesPage() {
@@ -36,7 +36,7 @@ export default function LoadingBundlesPage() {
   const { preferences, bundles, setBundles, isHydrated } = usePreferences();
   const [reasoningSummaries, setReasoningSummaries] = useState<ReasoningSummary[]>([]);
   const hasInitiatedRef = useRef(false);
-  const [sessionId] = useState(getOrCreateSessionId);
+  const [responseId] = useState(getOrCreateResponseId);
 
   useEffect(() => {
     // Wait for PreferencesContext to hydrate from localStorage
@@ -54,45 +54,45 @@ export default function LoadingBundlesPage() {
           return;
         }
 
-        if (!sessionId) {
-          console.error("⚠️ No session ID available");
+        if (!responseId) {
+          console.error("⚠️ No response ID available");
           return;
         }
 
-        console.log(`🔍 Checking session ${sessionId}`);
+        console.log(`🔍 Checking OpenAI response ${responseId}`);
 
-        // Check if session already exists in Redis
-        const checkResponse = await fetch(`/api/session/${sessionId}`);
+        // Check if OpenAI response already exists
+        const checkResponse = await fetch(`/api/openai/responses/${responseId}`);
 
         if (checkResponse.ok) {
-          const sessionData = await checkResponse.json();
-          console.log(`📊 Session status: ${sessionData.status}`);
+          const responseData = await checkResponse.json();
+          console.log(`📊 Response status: ${responseData.status}`);
 
-          // Case 1: Session already complete
-          if (sessionData.status === 'complete' && sessionData.bundles) {
-            console.log("✅ Session complete, loading bundles");
+          // Case 1: Response already completed
+          if (responseData.status === 'completed' && responseData.bundles) {
+            console.log("✅ Response complete, loading bundles");
             // Save to localStorage via context
-            setBundles(sessionData.bundles);
+            setBundles(responseData.bundles);
             router.push("/bundles");
             return;
           }
 
-          // Case 2: Session has error
-          if (sessionData.status === 'error') {
-            console.error("❌ Session error:", sessionData.error);
-            router.push("/error?message=" + encodeURIComponent(sessionData.error || "Unknown error"));
+          // Case 2: Response failed
+          if (responseData.status === 'failed') {
+            console.error("❌ Response failed:", responseData.error);
+            router.push("/error?message=" + encodeURIComponent(responseData.error || "Unknown error"));
             return;
           }
 
-          // Case 3: Session is generating - restore summaries and poll
-          if (sessionData.status === 'generating') {
-            console.log(`🔄 Resuming session with ${sessionData.summaries?.length || 0} summaries`);
+          // Case 3: Response is in progress or queued - restore summaries and poll
+          if (responseData.status === 'in_progress' || responseData.status === 'queued') {
+            console.log(`🔄 Resuming response (${responseData.status}) with ${responseData.summaries?.length || 0} summaries`);
 
-            if (sessionData.summaries && sessionData.summaries.length > 0) {
-              const restored = sessionData.summaries.map((text: string, index: number) => ({
+            if (responseData.summaries && responseData.summaries.length > 0) {
+              const restored = responseData.summaries.map((text: string, index: number) => ({
                 id: `restored-${index}`,
                 text,
-                timestamp: Date.now() - (sessionData.summaries.length - index) * 1000,
+                timestamp: Date.now() - (responseData.summaries.length - index) * 1000,
               }));
               setReasoningSummaries(restored);
             }
@@ -101,15 +101,8 @@ export default function LoadingBundlesPage() {
             startPolling();
             return;
           }
-
-          // Case 4: Session not found - create new one
-          if (sessionData.status === 'not_found') {
-            console.log("🆕 Creating new session");
-            await startNewGeneration();
-            return;
-          }
         } else {
-          // Failed to check session - start new
+          // Failed to check response - start new
           console.log("🆕 Starting fresh generation");
           await startNewGeneration();
         }
@@ -125,7 +118,6 @@ export default function LoadingBundlesPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            sessionId,
             preferences,
           }),
         });
@@ -134,7 +126,13 @@ export default function LoadingBundlesPage() {
           throw new Error("Failed to start generation");
         }
 
-        console.log("✅ Generation started");
+        const data = await response.json();
+        const newResponseId = data.responseId;
+
+        console.log(`✅ Generation started with response ID: ${newResponseId}`);
+
+        // Store the new response ID from OpenAI
+        localStorage.setItem('special-trips-response-id', newResponseId);
 
         // Start polling
         startPolling();
@@ -147,9 +145,17 @@ export default function LoadingBundlesPage() {
     function startPolling() {
       console.log("⏳ Starting polling...");
 
+      // Get the current responseId from state or localStorage
+      const currentResponseId = responseId || localStorage.getItem('special-trips-response-id');
+
+      if (!currentResponseId) {
+        console.error("⚠️ No response ID available for polling");
+        return;
+      }
+
       const pollInterval = setInterval(async () => {
         try {
-          const pollResponse = await fetch(`/api/session/${sessionId}`);
+          const pollResponse = await fetch(`/api/openai/responses/${currentResponseId}`);
 
           if (pollResponse.ok) {
             const pollData = await pollResponse.json();
@@ -172,14 +178,14 @@ export default function LoadingBundlesPage() {
             }
 
             // Check completion
-            if (pollData.status === 'complete' && pollData.bundles) {
+            if (pollData.status === 'completed' && pollData.bundles) {
               console.log("✅ Generation complete!");
               clearInterval(pollInterval);
               // Save bundles to localStorage via context
               setBundles(pollData.bundles);
               router.push("/bundles");
-            } else if (pollData.status === 'error') {
-              console.error("❌ Generation error:", pollData.error);
+            } else if (pollData.status === 'failed') {
+              console.error("❌ Generation failed:", pollData.error);
               clearInterval(pollInterval);
               router.push("/error?message=" + encodeURIComponent(pollData.error || "Unknown error"));
             }
@@ -197,7 +203,7 @@ export default function LoadingBundlesPage() {
     }
 
     initializeGeneration();
-  }, [preferences, router, setBundles, sessionId, bundles, isHydrated]);
+  }, [preferences, router, setBundles, responseId, bundles, isHydrated]);
 
   return (
     <div className="relative min-h-screen max-h-screen overflow-hidden flex flex-col px-6 py-8 bg-background">

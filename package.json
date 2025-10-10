@@ -9,8 +9,6 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@upstash/redis": "^1.35.5",
-    "inngest": "^3.44.2",
     "next": "15.5.4",
     "openai": "^6.0.1",
     "react": "19.1.0",

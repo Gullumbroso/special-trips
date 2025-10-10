@@ -7,7 +7,6 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Use Edge Runtime for streaming
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 export const fetchCache = 'force-no-store';
@@ -26,66 +25,115 @@ function extractSummaryTitle(text: string): string {
   return trimmedText.replace(/\*\*/g, '');
 }
 
-async function handleGeneration(request: NextRequest) {
+async function handleStreaming(request: NextRequest) {
   try {
-    // Try to get preferences from body (POST) or query params (GET for EventSource)
-    let preferences: UserPreferences;
+    const url = new URL(request.url);
+    const responseId = url.searchParams.get('responseId');
+    const startingAfter = url.searchParams.get('startingAfter');
+    const prefsParam = url.searchParams.get('preferences');
 
-    if (request.method === 'POST') {
-      const body = await request.json();
-      preferences = body.preferences;
+    console.log('[API] Stream request:', { responseId, startingAfter: startingAfter?.substring(0, 20) });
+
+    let stream;
+
+    if (responseId && startingAfter) {
+      // Resume existing stream from cursor
+      console.log(`[API] Resuming stream for ${responseId} from cursor ${startingAfter.substring(0, 20)}...`);
+
+      // Note: SDK support for resuming is coming soon, for now we'll use the API directly
+      // For now, we'll create a new stream and OpenAI will handle the cursor internally
+      const response = await fetch(`https://api.openai.com/v1/responses/${responseId}?stream=true&starting_after=${startingAfter}`, {
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to resume stream: ${response.statusText}`);
+      }
+
+      // Return the stream directly
+      return new Response(response.body, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      });
+    } else if (responseId) {
+      // Resume existing stream from beginning (no cursor)
+      console.log(`[API] Resuming stream for ${responseId} from beginning...`);
+
+      const response = await fetch(`https://api.openai.com/v1/responses/${responseId}?stream=true`, {
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to resume stream: ${response.statusText}`);
+      }
+
+      return new Response(response.body, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      });
     } else {
-      // GET request from EventSource
-      const url = new URL(request.url);
-      const prefsParam = url.searchParams.get('preferences');
+      // Create new background + streaming response
       if (!prefsParam) {
         throw new Error('Missing preferences parameter');
       }
-      preferences = JSON.parse(prefsParam);
-    }
 
-    console.log('[API] Starting background + streaming response generation');
+      const preferences: UserPreferences = JSON.parse(prefsParam);
+      console.log('[API] Creating new background + streaming response');
 
-    // Format preferences
-    const interestsString = preferences.interests
-      .map((interest) => INTEREST_LABELS[interest])
-      .join(', ');
+      // Format preferences
+      const interestsString = preferences.interests
+        .map((interest) => INTEREST_LABELS[interest])
+        .join(', ');
 
-    let musicTasteString = preferences.musicProfile;
-    if (preferences.spotifyMusicProfile) {
-      const spotifyData = {
-        artists: preferences.spotifyMusicProfile.artists.map((a) => a.name),
-        genres: preferences.spotifyMusicProfile.genres,
+      let musicTasteString = preferences.musicProfile;
+      if (preferences.spotifyMusicProfile) {
+        const spotifyData = {
+          artists: preferences.spotifyMusicProfile.artists.map((a) => a.name),
+          genres: preferences.spotifyMusicProfile.genres,
+        };
+        musicTasteString = JSON.stringify(spotifyData);
+      }
+
+      const promptVariables = {
+        interests: interestsString,
+        music_taste: musicTasteString,
+        date_range: preferences.timeframe,
+        free_text_requests: preferences.otherPreferences || 'None',
       };
-      musicTasteString = JSON.stringify(spotifyData);
+
+      // Create background + streaming response (as per OpenAI docs)
+      stream = await openai.responses.create({
+        prompt: {
+          id: PROMPT_ID,
+          variables: promptVariables,
+        },
+        background: true, // Runs in background (no timeout, continues if connection drops)
+        stream: true, // Stream events with cursor for resumption
+        store: true, // Required for background mode
+        reasoning: {
+          effort: 'medium',
+          summary: 'auto',
+        },
+      });
+
+      console.log('[API] Created background streaming response');
     }
 
-    const promptVariables = {
-      interests: interestsString,
-      music_taste: musicTasteString,
-      date_range: preferences.timeframe,
-      free_text_requests: preferences.otherPreferences || 'None',
-    };
-
-    // Create background + streaming response
-    // This gives us real-time summaries while still running in background
-    const stream = await openai.responses.create({
-      prompt: {
-        id: PROMPT_ID,
-        variables: promptVariables,
-      },
-      background: true, // Run in background (no timeout, continues if connection drops)
-      stream: true, // Stream events for real-time summaries
-      store: true, // Required for background mode
-      reasoning: {
-        effort: 'medium',
-        summary: 'auto',
-      },
-    });
-
-    // Create SSE response stream
+    // Stream SSE events to client with cursor tracking
     const encoder = new TextEncoder();
-    let responseId = '';
+    let responseIdFromStream = '';
 
     const readableStream = new ReadableStream({
       async start(controller) {
@@ -95,12 +143,23 @@ async function handleGeneration(request: NextRequest) {
             const evt = event as any;
 
             // Extract response ID from first event
-            if (!responseId && evt.response_id) {
-              responseId = evt.response_id;
-              console.log(`[API] Streaming response ${responseId}`);
+            if (!responseIdFromStream && evt.response_id) {
+              responseIdFromStream = evt.response_id;
+              console.log(`[API] Streaming response ${responseIdFromStream}`);
 
-              // Send response ID to client immediately
-              const message = `event: response_id\ndata: ${JSON.stringify({ responseId })}\n\n`;
+              // Send response ID to client
+              const message = `event: response_id\ndata: ${JSON.stringify({
+                responseId: responseIdFromStream,
+                cursor: evt.sequence_number
+              })}\n\n`;
+              controller.enqueue(encoder.encode(message));
+            }
+
+            // Send cursor updates with every event
+            if (evt.sequence_number) {
+              const message = `event: cursor\ndata: ${JSON.stringify({
+                cursor: evt.sequence_number
+              })}\n\n`;
               controller.enqueue(encoder.encode(message));
             }
 
@@ -109,15 +168,21 @@ async function handleGeneration(request: NextRequest) {
               const text = evt.part?.text || '';
               if (text) {
                 const title = extractSummaryTitle(text);
-                const message = `event: summary\ndata: ${JSON.stringify({ text: title })}\n\n`;
+                const message = `event: summary\ndata: ${JSON.stringify({
+                  text: title,
+                  cursor: evt.sequence_number
+                })}\n\n`;
                 controller.enqueue(encoder.encode(message));
               }
             }
 
             // Send completion event
             if (evt.type === 'response.completed') {
-              console.log(`[API] Response ${responseId} completed`);
-              const message = `event: completed\ndata: ${JSON.stringify({ responseId })}\n\n`;
+              console.log(`[API] Response ${responseIdFromStream} completed`);
+              const message = `event: completed\ndata: ${JSON.stringify({
+                responseId: responseIdFromStream,
+                cursor: evt.sequence_number
+              })}\n\n`;
               controller.enqueue(encoder.encode(message));
               controller.close();
               return;
@@ -126,8 +191,11 @@ async function handleGeneration(request: NextRequest) {
             // Send error event
             if (evt.type === 'response.failed') {
               const errorMsg = evt.response?.error?.message || 'Response failed';
-              console.error(`[API] Response ${responseId} failed:`, errorMsg);
-              const message = `event: error\ndata: ${JSON.stringify({ error: errorMsg })}\n\n`;
+              console.error(`[API] Response ${responseIdFromStream} failed:`, errorMsg);
+              const message = `event: error\ndata: ${JSON.stringify({
+                error: errorMsg,
+                cursor: evt.sequence_number
+              })}\n\n`;
               controller.enqueue(encoder.encode(message));
               controller.close();
               return;
@@ -150,18 +218,14 @@ async function handleGeneration(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[API] Error creating response:', error);
+    console.error('[API] Error in streaming:', error);
     return new Response(
-      JSON.stringify({ error: 'Failed to create generation job' }),
+      JSON.stringify({ error: 'Failed to create or resume stream' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
 }
 
-export async function POST(request: NextRequest) {
-  return handleGeneration(request);
-}
-
 export async function GET(request: NextRequest) {
-  return handleGeneration(request);
+  return handleStreaming(request);
 }

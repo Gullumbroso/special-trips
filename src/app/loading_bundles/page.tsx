@@ -11,13 +11,20 @@ interface ReasoningSummary {
   timestamp: number;
 }
 
+// Storage keys
+const STORAGE_KEY_RESPONSE_ID = 'special-trips-response-id';
+const STORAGE_KEY_CURSOR = 'special-trips-cursor';
+
 // Retrieve OpenAI response ID from localStorage (if exists)
 function getStoredResponseId(): string | null {
-  const STORAGE_KEY = 'special-trips-response-id';
-
   if (typeof window === 'undefined') return null;
+  return localStorage.getItem(STORAGE_KEY_RESPONSE_ID);
+}
 
-  return localStorage.getItem(STORAGE_KEY);
+// Retrieve cursor from localStorage (if exists)
+function getStoredCursor(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(STORAGE_KEY_CURSOR);
 }
 
 export default function LoadingBundlesPage() {
@@ -26,6 +33,8 @@ export default function LoadingBundlesPage() {
   const [reasoningSummaries, setReasoningSummaries] = useState<ReasoningSummary[]>([]);
   const hasInitiatedRef = useRef(false);
   const [responseId, setResponseId] = useState<string | null>(null);
+  const [cursor, setCursor] = useState<string | null>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
     // Wait for PreferencesContext to hydrate from localStorage
@@ -45,126 +54,138 @@ export default function LoadingBundlesPage() {
 
         // SECOND: Check if we have a stored OpenAI response ID
         const storedResponseId = getStoredResponseId();
+        const storedCursor = getStoredCursor();
 
         if (storedResponseId) {
-          console.log(`🔍 Checking stored OpenAI response ${storedResponseId}`);
+          console.log(`🔍 Found stored response ${storedResponseId}`);
           setResponseId(storedResponseId);
-
-          // Check if OpenAI response already exists
-          const checkResponse = await fetch(`/api/openai/responses/${storedResponseId}`);
-
-          if (checkResponse.ok) {
-            const responseData = await checkResponse.json();
-            console.log(`📊 Response status: ${responseData.status}`);
-
-            // Case 1: Response already completed
-            if (responseData.status === 'completed' && responseData.bundles) {
-              console.log("✅ Response complete, loading bundles");
-              // Save to localStorage via context
-              setBundles(responseData.bundles);
-              router.push("/bundles");
-              return;
-            }
-
-            // Case 2: Response failed
-            if (responseData.status === 'failed') {
-              console.error("❌ Response failed:", responseData.error);
-              router.push("/error?message=" + encodeURIComponent(responseData.error || "Unknown error"));
-              return;
-            }
-
-            // Case 3: Response is in progress or queued - restore summaries and poll
-            if (responseData.status === 'in_progress' || responseData.status === 'queued') {
-              console.log(`🔄 Resuming response (${responseData.status}) with ${responseData.summaries?.length || 0} summaries`);
-
-              if (responseData.summaries && responseData.summaries.length > 0) {
-                const restored = responseData.summaries.map((text: string, index: number) => ({
-                  id: `restored-${index}`,
-                  text,
-                  timestamp: Date.now() - (responseData.summaries.length - index) * 1000,
-                }));
-                setReasoningSummaries(restored);
-              }
-
-              // Start polling
-              startPolling(storedResponseId);
-              return;
-            }
+          if (storedCursor) {
+            console.log(`📍 Found cursor: ${storedCursor.substring(0, 20)}...`);
+            setCursor(storedCursor);
           }
+
+          // Resume streaming from where we left off
+          startStreaming(storedResponseId, storedCursor);
+          return;
         }
 
-        // If no stored response or check failed, start new generation
+        // If no stored response, start new generation
         console.log("🆕 Starting fresh generation");
-        await startNewGeneration();
+        startStreaming(null, null);
       } catch (error) {
         console.error("Error initializing:", error);
         router.push("/error?message=" + encodeURIComponent("Failed to start generation"));
       }
     }
 
-    async function startNewGeneration() {
-      try {
-        console.log("🚀 Starting SSE stream...");
-
-        // Use EventSource for Server-Sent Events streaming
-        const eventSource = new EventSource("/api/generate-bundles?" + new URLSearchParams({
-          preferences: JSON.stringify(preferences),
-        }));
-
-        let receivedResponseId = '';
-
-        eventSource.addEventListener('response_id', (e) => {
-          const data = JSON.parse(e.data);
-          receivedResponseId = data.responseId;
-          console.log(`✅ Received response ID: ${receivedResponseId}`);
-
-          // Store the response ID
-          localStorage.setItem('special-trips-response-id', receivedResponseId);
-          setResponseId(receivedResponseId);
-        });
-
-        eventSource.addEventListener('summary', (e) => {
-          const data = JSON.parse(e.data);
-          console.log(`📝 Summary: ${data.text}`);
-
-          setReasoningSummaries(prev => [...prev, {
-            id: `summary-${Date.now()}-${Math.random()}`,
-            text: data.text,
-            timestamp: Date.now(),
-          }]);
-        });
-
-        eventSource.addEventListener('completed', (e) => {
-          const data = JSON.parse(e.data);
-          console.log(`✅ Generation completed: ${data.responseId}`);
-          eventSource.close();
-
-          // Fetch final bundles
-          fetchCompletedBundles(data.responseId);
-        });
-
-        eventSource.addEventListener('error', (e) => {
-          console.error("❌ SSE error:", e);
-          eventSource.close();
-          router.push("/error?message=" + encodeURIComponent("Stream connection error"));
-        });
-
-        eventSource.onerror = () => {
-          console.error("❌ EventSource connection error");
-          eventSource.close();
-
-          // If we have a response ID, try to resume via polling
-          if (receivedResponseId) {
-            console.log("🔄 Falling back to polling...");
-            startPolling(receivedResponseId);
-          } else {
-            router.push("/error?message=" + encodeURIComponent("Failed to start generation"));
-          }
-        };
-      } catch (error) {
-        console.error("Error starting generation:", error);
-        router.push("/error?message=" + encodeURIComponent("Failed to start generation"));
+    function startStreaming(existingResponseId: string | null, existingCursor: string | null) {
+      // Close any existing EventSource
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
       }
+
+      console.log("🚀 Starting/resuming stream...", { existingResponseId, cursor: existingCursor?.substring(0, 20) });
+
+      // Build URL with query params
+      const params = new URLSearchParams();
+
+      if (existingResponseId) {
+        params.set('responseId', existingResponseId);
+        if (existingCursor) {
+          params.set('startingAfter', existingCursor);
+        }
+      } else {
+        // New stream - include preferences
+        params.set('preferences', JSON.stringify(preferences));
+      }
+
+      const url = `/api/generate-bundles?${params.toString()}`;
+      const eventSource = new EventSource(url);
+      eventSourceRef.current = eventSource;
+
+      let currentResponseId = existingResponseId || '';
+      let currentCursor = existingCursor || '';
+
+      eventSource.addEventListener('response_id', (e) => {
+        const data = JSON.parse(e.data);
+        currentResponseId = data.responseId;
+        currentCursor = data.cursor || '';
+
+        console.log(`✅ Received response ID: ${currentResponseId}`);
+
+        // Store the response ID and cursor
+        localStorage.setItem(STORAGE_KEY_RESPONSE_ID, currentResponseId);
+        if (currentCursor) {
+          localStorage.setItem(STORAGE_KEY_CURSOR, currentCursor);
+        }
+        setResponseId(currentResponseId);
+        setCursor(currentCursor);
+      });
+
+      eventSource.addEventListener('cursor', (e) => {
+        const data = JSON.parse(e.data);
+        currentCursor = data.cursor;
+
+        // Update cursor in localStorage continuously
+        if (currentCursor) {
+          localStorage.setItem(STORAGE_KEY_CURSOR, currentCursor);
+          setCursor(currentCursor);
+        }
+      });
+
+      eventSource.addEventListener('summary', (e) => {
+        const data = JSON.parse(e.data);
+        console.log(`📝 Summary: ${data.text}`);
+
+        // Update cursor
+        if (data.cursor) {
+          currentCursor = data.cursor;
+          localStorage.setItem(STORAGE_KEY_CURSOR, currentCursor);
+          setCursor(currentCursor);
+        }
+
+        // Add summary
+        setReasoningSummaries(prev => [...prev, {
+          id: `summary-${Date.now()}-${Math.random()}`,
+          text: data.text,
+          timestamp: Date.now(),
+        }]);
+      });
+
+      eventSource.addEventListener('completed', async (e) => {
+        const data = JSON.parse(e.data);
+        console.log(`✅ Generation completed: ${data.responseId}`);
+
+        // Update final cursor
+        if (data.cursor) {
+          localStorage.setItem(STORAGE_KEY_CURSOR, data.cursor);
+        }
+
+        eventSource.close();
+        eventSourceRef.current = null;
+
+        // Fetch final bundles
+        await fetchCompletedBundles(data.responseId);
+      });
+
+      eventSource.addEventListener('error', (e) => {
+        console.error("❌ SSE error event:", e);
+      });
+
+      eventSource.onerror = (error) => {
+        console.error("❌ EventSource connection error:", error);
+        eventSource.close();
+        eventSourceRef.current = null;
+
+        // If we have a response ID and cursor, we can try to resume
+        if (currentResponseId) {
+          console.log("🔄 Connection dropped, will resume on next page load");
+          // Don't automatically retry here - let user refresh to resume
+          // This prevents rapid retry loops
+        } else {
+          router.push("/error?message=" + encodeURIComponent("Failed to start generation"));
+        }
+      };
     }
 
     async function fetchCompletedBundles(id: string) {
@@ -173,6 +194,10 @@ export default function LoadingBundlesPage() {
         if (response.ok) {
           const data = await response.json();
           if (data.bundles) {
+            // Clear cursor after successful completion
+            localStorage.removeItem(STORAGE_KEY_CURSOR);
+            localStorage.removeItem(STORAGE_KEY_RESPONSE_ID);
+
             setBundles(data.bundles);
             router.push("/bundles");
           }
@@ -182,65 +207,16 @@ export default function LoadingBundlesPage() {
       }
     }
 
-    function startPolling(idToUse: string) {
-      console.log(`⏳ Starting polling for response ${idToUse}...`);
-
-      if (!idToUse) {
-        console.error("⚠️ No response ID provided for polling");
-        return;
-      }
-
-      const pollInterval = setInterval(async () => {
-        try {
-          const pollResponse = await fetch(`/api/openai/responses/${idToUse}`);
-
-          if (pollResponse.ok) {
-            const pollData = await pollResponse.json();
-
-            // Update summaries if new ones arrived
-            if (pollData.summaries && pollData.summaries.length > 0) {
-              setReasoningSummaries(prev => {
-                // Only update if we have NEW summaries
-                if (pollData.summaries.length > prev.length) {
-                  // Keep existing summaries with their IDs, add only new ones
-                  const newItems = pollData.summaries.slice(prev.length).map((text: string, index: number) => ({
-                    id: `summary-${prev.length + index}-${Date.now()}`,
-                    text,
-                    timestamp: Date.now(),
-                  }));
-                  return [...prev, ...newItems];
-                }
-                return prev; // No new summaries, don't trigger re-render
-              });
-            }
-
-            // Check completion
-            if (pollData.status === 'completed' && pollData.bundles) {
-              console.log("✅ Generation complete!");
-              clearInterval(pollInterval);
-              // Save bundles to localStorage via context
-              setBundles(pollData.bundles);
-              router.push("/bundles");
-            } else if (pollData.status === 'failed') {
-              console.error("❌ Generation failed:", pollData.error);
-              clearInterval(pollInterval);
-              router.push("/error?message=" + encodeURIComponent(pollData.error || "Unknown error"));
-            }
-          }
-        } catch (error) {
-          console.error("Polling error:", error);
-        }
-      }, 5000); // Poll every 5 seconds
-
-      // Cleanup after 15 minutes max
-      setTimeout(() => {
-        clearInterval(pollInterval);
-        console.log("⏰ Polling timeout");
-      }, 15 * 60 * 1000);
-    }
-
     initializeGeneration();
-  }, [preferences, router, setBundles, responseId, bundles, isHydrated]);
+
+    // Cleanup on unmount
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+    };
+  }, [preferences, router, setBundles, bundles, isHydrated]);
 
   return (
     <div className="relative min-h-screen max-h-screen overflow-hidden flex flex-col px-6 py-8 bg-background">
@@ -260,7 +236,7 @@ export default function LoadingBundlesPage() {
           <br />
           {reasoningSummaries.length > 0
             ? "We'll let you know once we're done."
-            : "Generating your personalized trip bundles in the background..."}
+            : "Generating your personalized trip bundles..."}
         </p>
 
         {/* Spinner */}
@@ -276,7 +252,6 @@ export default function LoadingBundlesPage() {
           <div className="relative">
             <div className="flex flex-col-reverse gap-2">
               {reasoningSummaries.map((summary, arrayIndex) => {
-                // Title is already extracted in the Inngest worker before sending to Redis
                 const displayText = summary.text.trim();
                 const isLatest = arrayIndex === reasoningSummaries.length - 1;
 

@@ -172,39 +172,36 @@ async function handleStreaming(request: NextRequest) {
         },
         background: true, // Runs in background (no timeout, continues if connection drops)
         stream: true, // Stream events with cursor for resumption
-        store: true, // Required for background mode
-        reasoning: {
-          effort: 'medium',
-          summary: 'auto',
-        },
+        store: true // Required for background mode
       });
 
-      console.log('[API] Created background streaming response');
+      // The stream object has the response ID immediately available
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const streamId = (stream as any).id;
+      console.log(`[API] Created background streaming response: ${streamId}`);
     }
 
     // Stream SSE events to client with cursor tracking
     const encoder = new TextEncoder();
-    let responseIdFromStream = '';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const responseIdFromStream = stream ? (stream as any).id : '';
 
     const readableStream = new ReadableStream({
       async start(controller) {
         try {
+          // Send response_id event first (if we just created the stream)
+          if (responseIdFromStream) {
+            const message = `event: response_id\ndata: ${JSON.stringify({
+              responseId: responseIdFromStream,
+              cursor: null
+            })}\n\n`;
+            controller.enqueue(encoder.encode(message));
+            console.log(`[API] Sent response ID to client: ${responseIdFromStream}`);
+          }
+
           for await (const event of stream) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const evt = event as any;
-
-            // Extract response ID from first event
-            if (!responseIdFromStream && evt.response_id) {
-              responseIdFromStream = evt.response_id;
-              console.log(`[API] Streaming response ${responseIdFromStream}`);
-
-              // Send response ID to client
-              const message = `event: response_id\ndata: ${JSON.stringify({
-                responseId: responseIdFromStream,
-                cursor: evt.sequence_number
-              })}\n\n`;
-              controller.enqueue(encoder.encode(message));
-            }
 
             // Send cursor updates with every event
             if (evt.sequence_number) {

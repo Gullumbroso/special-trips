@@ -38,8 +38,12 @@ export default function LoadingBundlesPage() {
 
   useEffect(() => {
     // Wait for PreferencesContext to hydrate from localStorage
-    if (!isHydrated) return;
+    if (!isHydrated) {
+      console.log("quiting due to hydration");
+      return; 
+    }
 
+    // Prevent double-running in strict mode or if hydration triggers twice
     if (hasInitiatedRef.current) return;
     hasInitiatedRef.current = true;
 
@@ -106,17 +110,43 @@ export default function LoadingBundlesPage() {
         }
       } else {
         // New stream - include preferences
+        console.log('[Client] Starting with preferences:', preferences);
         params.set('preferences', JSON.stringify(preferences));
       }
 
       const url = `/api/generate-bundles?${params.toString()}`;
+      console.log('[Client] EventSource URL:', url.substring(0, 100) + '...');
+      console.log('[Client] About to create EventSource...');
+
       const eventSource = new EventSource(url);
+      console.log('[Client] EventSource created, readyState:', eventSource.readyState);
       eventSourceRef.current = eventSource;
 
       let currentResponseId = existingResponseId || '';
       let currentCursor = existingCursor || '';
 
+      eventSource.onopen = () => {
+        console.log('[Client] ✅ EventSource connection opened, readyState:', eventSource.readyState);
+      };
+
+      eventSource.onerror = (error) => {
+        console.error('[Client] ❌ EventSource error, readyState:', eventSource.readyState, error);
+        eventSource.close();
+        eventSourceRef.current = null;
+
+        // If we have a response ID and cursor, we can try to resume
+        if (currentResponseId) {
+          console.log("🔄 Connection dropped, will resume on next page load");
+          // Don't automatically retry here - let user refresh to resume
+          // This prevents rapid retry loops
+        } else {
+          console.error("❌ Failed to start generation, no response ID");
+          router.push("/error?message=" + encodeURIComponent("Failed to start generation"));
+        }
+      };
+
       eventSource.addEventListener('response_id', (e) => {
+        console.log('[Client] 📥 response_id event received');
         const data = JSON.parse(e.data);
         currentResponseId = data.responseId;
         currentCursor = data.cursor || '';
@@ -178,39 +208,33 @@ export default function LoadingBundlesPage() {
         await fetchCompletedBundles(data.responseId);
       });
 
-      eventSource.addEventListener('error', (e) => {
-        console.error("❌ SSE error event:", e);
-      });
-
-      eventSource.onerror = (error) => {
-        console.error("❌ EventSource connection error:", error);
-        eventSource.close();
-        eventSourceRef.current = null;
-
-        // If we have a response ID and cursor, we can try to resume
-        if (currentResponseId) {
-          console.log("🔄 Connection dropped, will resume on next page load");
-          // Don't automatically retry here - let user refresh to resume
-          // This prevents rapid retry loops
-        } else {
-          router.push("/error?message=" + encodeURIComponent("Failed to start generation"));
-        }
-      };
+      // Note: We already have eventSource.onerror defined above
     }
 
     async function fetchCompletedBundles(id: string) {
       try {
+        console.log('[Client] Fetching completed bundles for:', id);
         const response = await fetch(`/api/openai/responses/${id}`);
+        console.log('[Client] Fetch response status:', response.status);
+
         if (response.ok) {
           const data = await response.json();
+          console.log('[Client] Response data:', data);
+
           if (data.bundles) {
+            console.log('[Client] Found bundles, count:', data.bundles.length);
             // Clear cursor after successful completion
             localStorage.removeItem(STORAGE_KEY_CURSOR);
             localStorage.removeItem(STORAGE_KEY_RESPONSE_ID);
 
             setBundles(data.bundles);
+            console.log('[Client] Navigating to /bundles');
             router.push("/bundles");
+          } else {
+            console.warn('[Client] No bundles in response data');
           }
+        } else {
+          console.error('[Client] Fetch failed with status:', response.status);
         }
       } catch (error) {
         console.error("Error fetching bundles:", error);
@@ -225,8 +249,11 @@ export default function LoadingBundlesPage() {
         eventSourceRef.current.close();
         eventSourceRef.current = null;
       }
+      // Reset the ref so it can run again if we navigate back to this page
+      hasInitiatedRef.current = false;
     };
-  }, [preferences, router, setBundles, bundles, isHydrated]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHydrated]); // Only re-run when hydration completes
 
   return (
     <div className="relative min-h-screen max-h-screen overflow-hidden flex flex-col px-6 py-8 bg-background">

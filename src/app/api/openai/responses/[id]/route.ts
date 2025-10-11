@@ -72,15 +72,60 @@ export async function GET(
 
     // Extract bundles if completed
     let bundles = null;
-    if (response.status === 'completed' && response.output_text) {
-      try {
-        console.log(`[OpenAI Proxy] Parsing output_text (length: ${response.output_text.length})`);
-        const parsed = JSON.parse(response.output_text);
-        bundles = parsed.bundles || null;
-        console.log(`[OpenAI Proxy] Extracted ${bundles?.length || 0} bundles`);
-      } catch (e) {
-        console.error('[OpenAI Proxy] Failed to parse output_text:', e);
-        console.error('[OpenAI Proxy] Output text (first 500 chars):', response.output_text?.substring(0, 500));
+    if (response.status === 'completed') {
+      // Debug: log output types and find message
+      const outputTypes = response.output?.map(item => item.type) || [];
+      console.log('[OpenAI Proxy] Output types:', outputTypes);
+
+      const messageOutput = response.output?.find(item => item.type === 'message');
+      console.log('[OpenAI Proxy] Message output found:', !!messageOutput);
+
+      if (messageOutput) {
+        console.log('[OpenAI Proxy] Message output keys:', Object.keys(messageOutput));
+        console.log('[OpenAI Proxy] Message has content:', 'content' in messageOutput);
+
+        if ('content' in messageOutput) {
+          const content = messageOutput.content;
+          console.log('[OpenAI Proxy] Content is array:', Array.isArray(content));
+          console.log('[OpenAI Proxy] Content length:', Array.isArray(content) ? content.length : 'N/A');
+          if (Array.isArray(content)) {
+            console.log('[OpenAI Proxy] Content item types:', content.map((c: any) => c.type));
+          }
+        }
+      }
+
+      let textContent = null;
+
+      if (messageOutput && 'content' in messageOutput) {
+        const content = messageOutput.content as Array<{ type: string; text?: string }>;
+        console.log('[OpenAI Proxy] Message content items:', content.map(c => c.type));
+        textContent = content.find(c => c.type === 'output_text')?.text || null;
+
+        if (textContent) {
+          console.log('[OpenAI Proxy] Found text in message content (output_text)');
+        } else {
+          // Try regular text type
+          textContent = content.find(c => c.type === 'text')?.text || null;
+          if (textContent) {
+            console.log('[OpenAI Proxy] Found text in message content (text)');
+          }
+        }
+      }
+
+      // Parse the text content if found
+      if (textContent) {
+        try {
+          console.log(`[OpenAI Proxy] Parsing output (length: ${textContent.length})`);
+          console.log(`[OpenAI Proxy] First 500 chars:`, textContent.substring(0, 500));
+          const parsed = JSON.parse(textContent);
+          bundles = parsed.bundles || null;
+          console.log(`[OpenAI Proxy] Extracted ${bundles?.length || 0} bundles`);
+        } catch (e) {
+          console.error('[OpenAI Proxy] Failed to parse output:', e);
+          console.error('[OpenAI Proxy] Content:', textContent?.substring(0, 500));
+        }
+      } else {
+        console.log('[OpenAI Proxy] No text content found in response');
       }
     }
 

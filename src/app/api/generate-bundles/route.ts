@@ -32,8 +32,6 @@ async function handleStreaming(request: NextRequest) {
     const startingAfter = url.searchParams.get('startingAfter');
     const prefsParam = url.searchParams.get('preferences');
 
-    console.log('[API] Stream request:', { responseId, startingAfter: startingAfter?.substring(0, 20) });
-
     let stream;
 
     if (responseId && startingAfter) {
@@ -56,23 +54,28 @@ async function handleStreaming(request: NextRequest) {
       const encoder = new TextEncoder();
       const readableStream = new ReadableStream({
         async start(controller) {
-          // Send response_id event first
-          const idMessage = `event: response_id\ndata: ${JSON.stringify({
-            responseId: responseId,
-            cursor: startingAfter
-          })}\n\n`;
-          controller.enqueue(encoder.encode(idMessage));
-
-          // Then pipe the rest of the stream
-          const reader = response.body?.getReader();
-          if (!reader) return;
-
           try {
+            // Send response_id event first
+            const idMessage = `event: response_id\ndata: ${JSON.stringify({
+              responseId: responseId,
+              cursor: startingAfter
+            })}\n\n`;
+            controller.enqueue(encoder.encode(idMessage));
+
+            // Then pipe the rest of the stream
+            const reader = response.body?.getReader();
+            if (!reader) {
+              controller.close();
+              return;
+            }
+
             while (true) {
               const { done, value } = await reader.read();
               if (done) break;
               controller.enqueue(value);
             }
+          } catch (error) {
+            console.error('[API] Error piping resumed stream:', error);
           } finally {
             controller.close();
           }
@@ -105,22 +108,27 @@ async function handleStreaming(request: NextRequest) {
       const encoder = new TextEncoder();
       const readableStream = new ReadableStream({
         async start(controller) {
-          // Send response_id event first
-          const idMessage = `event: response_id\ndata: ${JSON.stringify({
-            responseId: responseId
-          })}\n\n`;
-          controller.enqueue(encoder.encode(idMessage));
-
-          // Then pipe the rest of the stream
-          const reader = response.body?.getReader();
-          if (!reader) return;
-
           try {
+            // Send response_id event first
+            const idMessage = `event: response_id\ndata: ${JSON.stringify({
+              responseId: responseId
+            })}\n\n`;
+            controller.enqueue(encoder.encode(idMessage));
+
+            // Then pipe the rest of the stream
+            const reader = response.body?.getReader();
+            if (!reader) {
+              controller.close();
+              return;
+            }
+
             while (true) {
               const { done, value } = await reader.read();
               if (done) break;
               controller.enqueue(value);
             }
+          } catch (error) {
+            console.error('[API] Error piping resumed stream:', error);
           } finally {
             controller.close();
           }
@@ -174,12 +182,10 @@ async function handleStreaming(request: NextRequest) {
         stream: true, // Stream events with cursor for resumption
         store: true, // Required for background mode
         reasoning: {
-          effort: 'medium',
+          effort: 'low',
           summary: 'auto',
         },
       });
-
-      console.log('[API] Created background streaming response');
     }
 
     // Stream SSE events to client with cursor tracking
@@ -193,12 +199,11 @@ async function handleStreaming(request: NextRequest) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const evt = event as any;
 
-            // Extract response ID from first event
-            if (!responseIdFromStream && evt.response_id) {
-              responseIdFromStream = evt.response_id;
-              console.log(`[API] Streaming response ${responseIdFromStream}`);
+            // Extract response ID from first event (it's in response.id)
+            if (!responseIdFromStream && evt.response?.id) {
+              responseIdFromStream = evt.response.id;
+              console.log(`[Response ID] ${responseIdFromStream}`);
 
-              // Send response ID to client
               const message = `event: response_id\ndata: ${JSON.stringify({
                 responseId: responseIdFromStream,
                 cursor: evt.sequence_number

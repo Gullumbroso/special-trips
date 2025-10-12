@@ -1,8 +1,9 @@
 import { NextRequest } from 'next/server';
-import { UserPreferences } from '@/lib/types';
+import { UserPreferences, TripBundle } from '@/lib/types';
 import OpenAI from 'openai';
 import { INTEREST_LABELS } from '@/lib/constants';
 import { fetchEventImages } from '@/lib/opengraph';
+import { getBundleImageUrl } from '@/lib/utils';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -107,6 +108,11 @@ function createOpenAIResponse(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   input: Array<any>
 ) {
+  console.log('[API] Creating OpenAI response with:');
+  console.log(`[API]   - Prompt ID: ${PROMPT_ID}`);
+  console.log(`[API]   - Input items: ${input.length}`);
+  console.log(`[API]   - Variables: ${JSON.stringify(Object.keys(promptVariables))}`);
+
   return openai.responses.create({
     prompt: {
       id: PROMPT_ID,
@@ -202,7 +208,24 @@ function extractBundles(allOutputItems: Array<any>): any[] | null {
 
   try {
     const parsed = JSON.parse(textContent);
-    const bundles = parsed.bundles || null;
+    let bundles = parsed.bundles || null;
+
+    // Deterministically set bundle imageUrl based on key events
+    if (bundles && Array.isArray(bundles)) {
+      bundles = bundles.map((bundle: TripBundle) => {
+        const determinedImageUrl = getBundleImageUrl(bundle.keyEvents || []);
+        bundle.imageUrl = determinedImageUrl;
+
+        if (determinedImageUrl.startsWith('/fallback-images/')) {
+          console.log(`[API] Bundle "${bundle.title}" using fallback image`);
+        } else {
+          console.log(`[API] Bundle "${bundle.title}" using image from key event`);
+        }
+
+        return bundle;
+      });
+    }
+
     console.log(`[API] Extracted ${bundles?.length || 0} bundles`);
     return bundles;
   } catch (e) {
@@ -213,7 +236,24 @@ function extractBundles(allOutputItems: Array<any>): any[] | null {
     try {
       const repairedContent = repairJSON(textContent);
       const fixedParsed = JSON.parse(repairedContent);
-      const bundles = fixedParsed.bundles || null;
+      let bundles = fixedParsed.bundles || null;
+
+      // Deterministically set bundle imageUrl based on key events
+      if (bundles && Array.isArray(bundles)) {
+        bundles = bundles.map((bundle: TripBundle) => {
+          const determinedImageUrl = getBundleImageUrl(bundle.keyEvents || []);
+          bundle.imageUrl = determinedImageUrl;
+
+          if (determinedImageUrl.startsWith('/fallback-images/')) {
+            console.log(`[API] Bundle "${bundle.title}" using fallback image`);
+          } else {
+            console.log(`[API] Bundle "${bundle.title}" using image from key event`);
+          }
+
+          return bundle;
+        });
+      }
+
       console.log(`[API] ✅ Successfully recovered ${bundles?.length || 0} bundles after JSON repair`);
       return bundles;
     } catch {
@@ -400,6 +440,12 @@ async function processStream(
     }
   } catch (error) {
     console.error('[API] Stream error:', error);
+
+    // Log full error details for debugging
+    if (error && typeof error === 'object') {
+      console.error('[API] Error details:', JSON.stringify(error, null, 2));
+    }
+
     const errorMsg = error instanceof Error ? error.message : 'Stream processing error';
     const message = `event: error\ndata: ${JSON.stringify({ error: errorMsg })}\n\n`;
     controller.enqueue(encoder.encode(message));
@@ -590,6 +636,15 @@ async function handleResumeStream(
 
 async function handleStreaming(request: NextRequest) {
   try {
+    // Validate API key is set
+    if (!process.env.OPENAI_API_KEY) {
+      console.error('[API] OPENAI_API_KEY is not set');
+      return new Response(
+        JSON.stringify({ error: 'OpenAI API key not configured' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     const url = new URL(request.url);
     const responseId = url.searchParams.get('responseId');
     const startingAfter = url.searchParams.get('startingAfter');
@@ -604,6 +659,8 @@ async function handleStreaming(request: NextRequest) {
     }
     const preferences: UserPreferences = JSON.parse(prefsParam);
     const promptVariables = formatPromptVariables(preferences);
+
+    console.log('[API] Request preferences:', JSON.stringify(preferences, null, 2));
 
     // Handle resume scenarios
     if (responseId) {

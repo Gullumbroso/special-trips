@@ -6,7 +6,6 @@ import { TripBundle } from "@/lib/types";
 import { getBundleById } from "@/lib/bundleService";
 import { formatDateRange } from "@/lib/utils";
 import EventCard from "@/components/bundles/EventCard";
-import ImageWithFallback from "@/components/ui/ImageWithFallback";
 import Button from "@/components/ui/Button";
 import Chip from "@/components/ui/Chip";
 import { usePreferences } from "@/lib/context/PreferencesContext";
@@ -75,16 +74,6 @@ export default function BundleDetailsPage() {
           <span>←</span>
           <span className="font-medium">Back</span>
         </button>
-      </div>
-
-      {/* Hero Image */}
-      <div className="relative w-full h-64">
-        <ImageWithFallback
-          src={bundle.imageUrl}
-          alt={bundle.title}
-          fill
-          className="object-cover"
-        />
       </div>
 
       {/* Content */}

@@ -15,8 +15,7 @@ export interface Event {
   eventWebsite?: string; // optional in UI
 }
 
-export interface TripBundle {
-  imageUrl: string;
+export interface Bundle {
   title: string;
   description: string;
   city: string;
@@ -26,7 +25,7 @@ export interface TripBundle {
 }
 
 export interface GPTResponse {
-  bundles: TripBundle[];
+  bundles: Bundle[];
 }
 
 export interface UserPreferences {

@@ -38,7 +38,7 @@ export default function InterestsPage() {
   const isValid = selectedInterests.length >= 2;
 
   return (
-    <div className="min-h-screen flex flex-col px-6 pt-4 pb-8">
+    <div className="min-h-screen flex flex-col px-6 pt-3 pb-8">
       {/* Logo */}
       <div className="mb-12 -ml-2">
         <Logo size="md" />

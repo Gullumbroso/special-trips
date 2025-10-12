@@ -39,12 +39,14 @@ export default function BundleCard({ bundle, index }: BundleCardProps) {
   return (
     <div className="bg-white rounded-lg mb-20 relative">
       {/* Image */}
-      <div className="relative w-full h-48 rounded-t-lg overflow-hidden">
+      <div className="relative w-full overflow-hidden" style={{ borderRadius: '12px' }}>
         <ImageWithFallback
           src={bundle.imageUrl}
           alt={bundle.title}
-          fill
-          className="object-cover"
+          width={800}
+          height={600}
+          className="w-full h-auto"
+          style={{ borderRadius: '12px' }}
         />
       </div>
 
@@ -88,10 +90,11 @@ export default function BundleCard({ bundle, index }: BundleCardProps) {
         {/* CTA Button - Sticky to bottom */}
         <div
           ref={buttonRef}
-          className={`sticky bottom-4 bg-white rounded-b-lg transition-shadow duration-300 ${isSticky ? 'shadow-lg' : 'shadow-none'}`}
+          className={`sticky bottom-4 bg-white transition-shadow duration-300 ${isSticky ? 'shadow-lg' : 'shadow-none'}`}
+          style={{ borderRadius: '8px' }}
         >
           <Link href={`/bundles/${index}`} className="block">
-            <button className="w-full bg-primary text-black font-bold py-4 rounded-lg hover:bg-primary/90 active:bg-primary/80 transition-all duration-200">
+            <button className="w-full bg-primary text-black font-bold py-4 hover:bg-primary/90 active:bg-primary/80 transition-all duration-200" style={{ borderRadius: '8px' }}>
               → Explore {bundle.city} Trip
             </button>
           </Link>

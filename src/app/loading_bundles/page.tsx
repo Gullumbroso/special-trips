@@ -33,11 +33,12 @@ export default function LoadingBundlesPage() {
   const { preferences, bundles, setBundles, isHydrated } = usePreferences();
   const [reasoningSummaries, setReasoningSummaries] = useState<ReasoningSummary[]>([]);
   const hasInitiatedRef = useRef(false);
-  const [responseId, setResponseId] = useState<string | null>(null);
-  const [cursor, setCursor] = useState<string | null>(null);
+  const [, setResponseId] = useState<string | null>(null);
+  const [, setCursor] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const [showEmptyState, setShowEmptyState] = useState(false);
   const startTimeRef = useRef<number | null>(null);
+  const [isResuming, setIsResuming] = useState(false);
 
   useEffect(() => {
     // Wait for PreferencesContext to hydrate from localStorage
@@ -76,6 +77,7 @@ export default function LoadingBundlesPage() {
         if (storedResponseId) {
           console.log(`🔍 Found stored response ${storedResponseId}`);
           setResponseId(storedResponseId);
+          setIsResuming(true); // Mark that we're resuming
           if (storedCursor) {
             console.log(`📍 Found cursor: ${storedCursor.substring(0, 20)}...`);
             setCursor(storedCursor);
@@ -325,19 +327,19 @@ export default function LoadingBundlesPage() {
   }
 
   return (
-    <div className="relative min-h-screen max-h-screen overflow-hidden flex flex-col px-6 py-8 bg-background">
+    <div className="relative min-h-screen max-h-screen overflow-hidden flex flex-col px-6 pt-3 bg-background">
       {/* Logo */}
-      <div className="mb-12">
+      <div className="mb-12 -ml-2">
         <Logo size="md" />
       </div>
 
       {/* Main content */}
       <div className="max-w-2xl">
         <h1 className="font-serif text-[32px] font-semibold mb-3 leading-tight">
-          Working on it...
+          {isResuming ? "Still on it..." : "Working on it..."}
         </h1>
 
-        <p className="text-base font-medium text-text-gray mb-6">
+        <p className="text-base font-normal text-black mb-6">
           This might take a few minutes.
           <br />
           {reasoningSummaries.length > 0

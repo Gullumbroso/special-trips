@@ -29,7 +29,7 @@ export default function EmptyBundlesState() {
         </h1>
 
         <p className="text-lg text-text-gray mb-8">
-          We didn't find any trips that fit your current criteria. Try widening your time window or changing your travel preferences to discover new possibilities.
+          We didn&apos;t find any trips that fit your current criteria. Try widening your time window or changing your travel preferences to discover new possibilities.
         </p>
 
         <div className="space-y-3">

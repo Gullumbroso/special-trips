@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { TripBundle } from "@/lib/types";
 import { getBundles } from "@/lib/bundleService";
 import { usePreferences } from "@/lib/context/PreferencesContext";
+import { getRandomFallbackImage } from "@/lib/utils";
 import BundleCard from "@/components/bundles/BundleCard";
 import Button from "@/components/ui/Button";
 import Dialog from "@/components/ui/Dialog";
@@ -18,6 +19,43 @@ export default function BundlesPage() {
   const [showRestartDialog, setShowRestartDialog] = useState(false);
 
   useEffect(() => {
+    // Function to add imageUrl to each bundle from its events
+    function addBundleImages(bundles: TripBundle[]): TripBundle[] {
+      return bundles.map((bundle) => {
+        let selectedImageUrl: string | null = null;
+
+        // Try to find an image from keyEvents first
+        if (bundle.keyEvents && bundle.keyEvents.length > 0) {
+          for (const event of bundle.keyEvents) {
+            if (event.imageUrl && event.imageUrl.trim() !== '') {
+              selectedImageUrl = event.imageUrl;
+              console.log(`Bundle "${bundle.title}" using image from key event "${event.title}": ${event.imageUrl}`);
+              break;
+            }
+          }
+        }
+
+        // Try minorEvents as fallback
+        if (!selectedImageUrl && bundle.minorEvents && bundle.minorEvents.length > 0) {
+          for (const event of bundle.minorEvents) {
+            if (event.imageUrl && event.imageUrl.trim() !== '') {
+              selectedImageUrl = event.imageUrl;
+              console.log(`Bundle "${bundle.title}" using image from minor event "${event.title}": ${event.imageUrl}`);
+              break;
+            }
+          }
+        }
+
+        // If no images found in events, use random fallback
+        if (!selectedImageUrl) {
+          selectedImageUrl = getRandomFallbackImage();
+          console.log(`Bundle "${bundle.title}" has no event images, using fallback: ${selectedImageUrl}`);
+        }
+
+        return { ...bundle, imageUrl: selectedImageUrl };
+      });
+    }
+
     async function loadBundles() {
       // Wait for context to hydrate from localStorage first
       if (!isHydrated) {
@@ -29,13 +67,15 @@ export default function BundlesPage() {
       // generatedBundles is always an array (or null)
       if (generatedBundles && generatedBundles.length > 0) {
         console.log('Using generated bundles:', generatedBundles.length);
-        setBundles(generatedBundles);
+        const bundlesWithImages = addBundleImages(generatedBundles);
+        setBundles(bundlesWithImages);
         setLoading(false);
       } else {
         // Fallback to static data for development
         console.log('Using fallback sample data');
         const data = await getBundles();
-        setBundles(data);
+        const bundlesWithImages = addBundleImages(data);
+        setBundles(bundlesWithImages);
         setLoading(false);
       }
     }
@@ -53,8 +93,8 @@ export default function BundlesPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="sticky top-0 bg-background px-4 py-4 z-10">
-        <Logo size="sm" />
+      <div className="sticky top-0 bg-background px-4 py-3 z-10">
+        <Logo size="md" />
       </div>
 
       {/* Bundles Feed */}

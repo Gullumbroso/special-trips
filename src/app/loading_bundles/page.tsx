@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { usePreferences } from "@/lib/context/PreferencesContext";
 import Logo from "@/components/ui/Logo";
+import EmptyBundlesState from "@/components/EmptyBundlesState";
 
 interface ReasoningSummary {
   id: string;
@@ -35,6 +36,8 @@ export default function LoadingBundlesPage() {
   const [responseId, setResponseId] = useState<string | null>(null);
   const [cursor, setCursor] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const [showEmptyState, setShowEmptyState] = useState(false);
+  const startTimeRef = useRef<number | null>(null);
 
   useEffect(() => {
     // Wait for PreferencesContext to hydrate from localStorage
@@ -78,6 +81,43 @@ export default function LoadingBundlesPage() {
             setCursor(storedCursor);
           }
 
+          // Start timer for resumed session
+          if (!startTimeRef.current) {
+            startTimeRef.current = Date.now();
+            console.log('⏱️ Client timer started (resuming)');
+          }
+
+          // First check if the response already completed while we were away
+          try {
+            const statusResponse = await fetch(`/api/openai/responses/${storedResponseId}`);
+            if (statusResponse.ok) {
+              const data = await statusResponse.json();
+              console.log(`📊 Response status: ${data.status}`);
+
+              if (data.status === 'completed' && data.bundles) {
+                console.log(`✅ Response already completed with ${data.bundles.length} bundles`);
+                // Clear storage
+                localStorage.removeItem(STORAGE_KEY_CURSOR);
+                localStorage.removeItem(STORAGE_KEY_RESPONSE_ID);
+
+                // Save bundles and navigate
+                if (data.bundles.length === 0) {
+                  setShowEmptyState(true);
+                } else {
+                  setBundles(data.bundles);
+                  router.push("/bundles");
+                }
+                return;
+              }
+
+              // If not completed or has error, resume streaming
+              console.log(`🔄 Response not complete, resuming stream...`);
+            }
+          } catch (error) {
+            console.error("Failed to check response status:", error);
+            // Continue with resuming stream on error
+          }
+
           // Resume streaming from where we left off
           startStreaming(storedResponseId, storedCursor);
           return;
@@ -98,60 +138,47 @@ export default function LoadingBundlesPage() {
         eventSourceRef.current.close();
       }
 
-      console.log("🚀 Starting/resuming stream...", { existingResponseId, cursor: existingCursor?.substring(0, 20) });
+      // Start timer
+      if (!startTimeRef.current) {
+        startTimeRef.current = Date.now();
+        console.log('⏱️ Client timer started');
+      }
 
       // Build URL with query params
       const params = new URLSearchParams();
+
+      // Always include preferences (needed for tool call execution)
+      params.set('preferences', JSON.stringify(preferences));
 
       if (existingResponseId) {
         params.set('responseId', existingResponseId);
         if (existingCursor) {
           params.set('startingAfter', existingCursor);
         }
-      } else {
-        // New stream - include preferences
-        console.log('[Client] Starting with preferences:', preferences);
-        params.set('preferences', JSON.stringify(preferences));
       }
 
       const url = `/api/generate-bundles?${params.toString()}`;
-      console.log('[Client] EventSource URL:', url.substring(0, 100) + '...');
-      console.log('[Client] About to create EventSource...');
-
       const eventSource = new EventSource(url);
-      console.log('[Client] EventSource created, readyState:', eventSource.readyState);
       eventSourceRef.current = eventSource;
 
       let currentResponseId = existingResponseId || '';
       let currentCursor = existingCursor || '';
 
-      eventSource.onopen = () => {
-        console.log('[Client] ✅ EventSource connection opened, readyState:', eventSource.readyState);
-      };
-
-      eventSource.onerror = (error) => {
-        console.error('[Client] ❌ EventSource error, readyState:', eventSource.readyState, error);
+      eventSource.onerror = () => {
         eventSource.close();
         eventSourceRef.current = null;
 
         // If we have a response ID and cursor, we can try to resume
-        if (currentResponseId) {
-          console.log("🔄 Connection dropped, will resume on next page load");
-          // Don't automatically retry here - let user refresh to resume
-          // This prevents rapid retry loops
-        } else {
-          console.error("❌ Failed to start generation, no response ID");
+        if (!currentResponseId) {
+          console.error("Failed to start generation");
           router.push("/error?message=" + encodeURIComponent("Failed to start generation"));
         }
       };
 
       eventSource.addEventListener('response_id', (e) => {
-        console.log('[Client] 📥 response_id event received');
         const data = JSON.parse(e.data);
         currentResponseId = data.responseId;
         currentCursor = data.cursor || '';
-
-        console.log(`✅ Received response ID: ${currentResponseId}`);
 
         // Store the response ID and cursor
         localStorage.setItem(STORAGE_KEY_RESPONSE_ID, currentResponseId);
@@ -175,7 +202,6 @@ export default function LoadingBundlesPage() {
 
       eventSource.addEventListener('summary', (e) => {
         const data = JSON.parse(e.data);
-        console.log(`📝 Summary: ${data.text}`);
 
         // Update cursor
         if (data.cursor) {
@@ -194,18 +220,59 @@ export default function LoadingBundlesPage() {
 
       eventSource.addEventListener('completed', async (e) => {
         const data = JSON.parse(e.data);
-        console.log(`✅ Generation completed: ${data.responseId}`);
 
         // Update final cursor
         if (data.cursor) {
           localStorage.setItem(STORAGE_KEY_CURSOR, data.cursor);
         }
 
+        // Log total client-side time
+        if (startTimeRef.current) {
+          const totalTime = Date.now() - startTimeRef.current;
+          const minutes = Math.floor(totalTime / 60000);
+          const seconds = ((totalTime % 60000) / 1000).toFixed(2);
+          console.log(`⏱️ Client-side total duration: ${minutes}m ${seconds}s`);
+        }
+
         eventSource.close();
         eventSourceRef.current = null;
 
-        // Fetch final bundles
-        await fetchCompletedBundles(data.responseId);
+        // Check if bundles are included in the event
+        if (data.bundles && Array.isArray(data.bundles)) {
+          // Clear cursor and response ID after successful completion
+          localStorage.removeItem(STORAGE_KEY_CURSOR);
+          localStorage.removeItem(STORAGE_KEY_RESPONSE_ID);
+
+          if (data.bundles.length === 0) {
+            // Show empty state
+            console.log('[Client] No bundles found, showing empty state');
+            setShowEmptyState(true);
+          } else {
+            // Save bundles and navigate
+            setBundles(data.bundles);
+            router.push("/bundles");
+          }
+        } else {
+          // Fallback: Fetch bundles from API (backward compatibility)
+          await fetchCompletedBundles(data.responseId);
+        }
+      });
+
+      // Handle error events from the server
+      eventSource.addEventListener('error', (e: MessageEvent) => {
+        const data = JSON.parse(e.data);
+
+        // If server tells us to clear storage, do it
+        if (data.clearStorage) {
+          localStorage.removeItem(STORAGE_KEY_RESPONSE_ID);
+          localStorage.removeItem(STORAGE_KEY_CURSOR);
+        }
+
+        eventSource.close();
+        eventSourceRef.current = null;
+
+        // Redirect to error page
+        router.push("/error?message=" + encodeURIComponent(data.error || 'Stream error'));
       });
 
       // Note: We already have eventSource.onerror defined above
@@ -213,28 +280,25 @@ export default function LoadingBundlesPage() {
 
     async function fetchCompletedBundles(id: string) {
       try {
-        console.log('[Client] Fetching completed bundles for:', id);
         const response = await fetch(`/api/openai/responses/${id}`);
-        console.log('[Client] Fetch response status:', response.status);
 
         if (response.ok) {
           const data = await response.json();
-          console.log('[Client] Response data:', data);
 
           if (data.bundles) {
-            console.log('[Client] Found bundles, count:', data.bundles.length);
             // Clear cursor after successful completion
             localStorage.removeItem(STORAGE_KEY_CURSOR);
             localStorage.removeItem(STORAGE_KEY_RESPONSE_ID);
 
-            setBundles(data.bundles);
-            console.log('[Client] Navigating to /bundles');
-            router.push("/bundles");
-          } else {
-            console.warn('[Client] No bundles in response data');
+            if (data.bundles.length === 0) {
+              // Show empty state
+              console.log('[Client] No bundles found, showing empty state');
+              setShowEmptyState(true);
+            } else {
+              setBundles(data.bundles);
+              router.push("/bundles");
+            }
           }
-        } else {
-          console.error('[Client] Fetch failed with status:', response.status);
         }
       } catch (error) {
         console.error("Error fetching bundles:", error);
@@ -254,6 +318,11 @@ export default function LoadingBundlesPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isHydrated]); // Only re-run when hydration completes
+
+  // Show empty state if no bundles were found
+  if (showEmptyState) {
+    return <EmptyBundlesState />;
+  }
 
   return (
     <div className="relative min-h-screen max-h-screen overflow-hidden flex flex-col px-6 py-8 bg-background">

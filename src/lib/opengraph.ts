@@ -5,6 +5,15 @@
 const OPENGRAPH_API_KEY = process.env.OPENGRAPH_API_KEY;
 const OPENGRAPH_BASE_URL = "https://opengraph.io/api/1.1/site";
 
+// Timing utility
+function formatDuration(ms: number): string {
+  if (ms < 1000) {
+    return `${ms.toFixed(0)}ms`;
+  }
+  const seconds = ms / 1000;
+  return `${seconds.toFixed(2)}s`;
+}
+
 export interface OpenGraphImage {
   url: string;
   width?: string;
@@ -54,6 +63,11 @@ function isValidImageFormat(imageUrl: string): boolean {
  * @returns Array of image URLs found in the metadata (all formats except SVG)
  */
 export async function fetchEventImages(url: string): Promise<string[]> {
+  const startTime = Date.now();
+
+  // Truncate URL for cleaner logging
+  const truncatedUrl = url.length > 50 ? url.substring(0, 47) + '...' : url;
+
   try {
     // Check if API key is available
     if (!OPENGRAPH_API_KEY) {
@@ -65,16 +79,16 @@ export async function fetchEventImages(url: string): Promise<string[]> {
     const encodedUrl = encodeURIComponent(url);
     const apiUrl = `${OPENGRAPH_BASE_URL}/${encodedUrl}?app_id=${OPENGRAPH_API_KEY}`;
 
-    console.log(`[OPENGRAPH] Fetching images from: ${url}`);
+    console.log(`🌐 [OPENGRAPH] Fetching images from: ${truncatedUrl}`);
     const response = await fetch(apiUrl);
 
     if (!response.ok) {
-      console.error(`[OPENGRAPH] API error for ${url}: ${response.status} ${response.statusText}`);
+      const duration = Date.now() - startTime;
+      console.error(`[OPENGRAPH] API error for ${truncatedUrl}: ${response.status} ${response.statusText} (${formatDuration(duration)})`);
       return [];
     }
 
     const data: OpenGraphResponse = await response.json();
-    console.log(`[OPENGRAPH] Response data:`, JSON.stringify(data).substring(0, 200));
     const imageUrls: string[] = [];
 
     // Priority 1: Extract from hybridGraph
@@ -130,13 +144,12 @@ export async function fetchEventImages(url: string): Promise<string[]> {
 
     // Remove duplicates
     const uniqueImages = [...new Set(imageUrls)];
-    console.log(`[OPENGRAPH] Found ${uniqueImages.length} valid image(s) for ${url}`);
-    if (uniqueImages.length > 0) {
-      console.log(`[OPENGRAPH] Images:`, uniqueImages);
-    }
+    const duration = Date.now() - startTime;
+    console.log(`✅ [OPENGRAPH] Found ${uniqueImages.length} image(s) for ${truncatedUrl} (${formatDuration(duration)})`);
     return uniqueImages;
   } catch (error) {
-    console.error(`[OPENGRAPH] Error fetching data for ${url}:`, error);
+    const duration = Date.now() - startTime;
+    console.error(`[OPENGRAPH] Error fetching data for ${truncatedUrl} (${formatDuration(duration)}):`, error);
     return [];
   }
 }

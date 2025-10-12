@@ -8,7 +8,9 @@ import { formatDateRange } from "@/lib/utils";
 import EventCard from "@/components/bundles/EventCard";
 import ImageWithFallback from "@/components/ui/ImageWithFallback";
 import Button from "@/components/ui/Button";
+import Chip from "@/components/ui/Chip";
 import { usePreferences } from "@/lib/context/PreferencesContext";
+import { INTEREST_EMOJIS } from "@/lib/constants";
 
 export default function BundleDetailsPage() {
   const router = useRouter();
@@ -65,7 +67,7 @@ export default function BundleDetailsPage() {
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Back Button - Fixed Header */}
-      <div className="sticky top-0 bg-background/95 backdrop-blur border-b border-gray-200 px-6 py-4 z-10">
+      <div className="sticky top-0 bg-background px-4 py-4 z-10">
         <button
           onClick={() => router.push("/bundles")}
           className="flex items-center gap-2 text-foreground hover:text-text-gray transition-colors"
@@ -86,18 +88,17 @@ export default function BundleDetailsPage() {
       </div>
 
       {/* Content */}
-      <div className="px-6 py-8">
+      <div className="px-4 py-8">
         {/* Header Info */}
         <div className="mb-6">
-          <div className="flex gap-2 text-sm text-black mb-3">
-            <span>{formatDateRange(bundle.dateRange)}</span>
-            <span>•</span>
-            <span>{bundle.city}</span>
-          </div>
-
           <h1 className="font-serif text-[32px] font-semibold mb-4 leading-tight">
             {bundle.title}
           </h1>
+
+          <div className="flex gap-2 mb-4">
+            <Chip>{formatDateRange(bundle.dateRange)}</Chip>
+            <Chip>{bundle.city}</Chip>
+          </div>
 
           <p className="text-base font-normal text-black leading-relaxed">
             {bundle.description}
@@ -105,20 +106,32 @@ export default function BundleDetailsPage() {
         </div>
 
         {/* Events Overview */}
-        <div className="mb-8">
-          <h3 className="text-xl mb-2">
-            Key Events ({bundle.keyEvents.length})
-          </h3>
+        <div className="mb-8 p-4 rounded-lg" style={{ backgroundColor: '#F2F2F7' }}>
+          <div className="text-base font-bold mb-3">Key events</div>
+          <div className="space-y-3">
+            {bundle.keyEvents.map((event, idx) => (
+              <div key={idx} className="text-sm leading-relaxed">
+                {INTEREST_EMOJIS[event.interestType]} {event.title}
+              </div>
+            ))}
+          </div>
           {bundle.minorEvents.length > 0 && (
-            <p className="text-black text-sm">
-              + {bundle.minorEvents.length} other interesting events
-            </p>
+            <>
+              <div className="text-base font-bold mb-3 mt-6">Other interesting events</div>
+              <div className="space-y-3">
+                {bundle.minorEvents.map((event, idx) => (
+                  <div key={idx} className="text-sm leading-relaxed">
+                    {INTEREST_EMOJIS[event.interestType]} {event.title}
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
 
         {/* Key Events */}
         <div className="mb-8">
-          <h3 className="text-xl mb-4">Key Events</h3>
+          <h4 className="text-xl font-medium mb-4 sticky top-[56px] bg-background pb-2 z-[5]">Key Events</h4>
           {bundle.keyEvents.map((event, idx) => (
             <EventCard key={idx} event={event} />
           ))}
@@ -127,9 +140,9 @@ export default function BundleDetailsPage() {
         {/* Minor Events */}
         {bundle.minorEvents.length > 0 && (
           <div>
-            <h3 className="text-xl mb-4">
+            <h4 className="text-xl font-medium mb-4 sticky top-[56px] bg-background pb-2 z-[5]">
               Other Interesting Events
-            </h3>
+            </h4>
             {bundle.minorEvents.map((event, idx) => (
               <EventCard key={idx} event={event} isMinor />
             ))}

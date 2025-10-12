@@ -1,0 +1,314 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GPTResponse",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "bundles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "title": "TripBundle",
+        "additionalProperties": false,
+        "properties": {
+          "imageUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "dateRange": {
+            "$ref": "#/definitions/DateRange"
+          },
+          "keyEvents": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/definitions/Event"
+            }
+          },
+          "minorEvents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/Event"
+            }
+          }
+        },
+        "required": [
+          "imageUrl",
+          "title",
+          "description",
+          "city",
+          "dateRange",
+          "keyEvents",
+          "minorEvents"
+        ]
+      }
+    }
+  },
+  "required": [
+    "bundles"
+  ],
+  "definitions": {
+    "DateRange": {
+      "type": "object",
+      "title": "DateRange",
+      "additionalProperties": false,
+      "properties": {
+        "startDate": {
+          "type": "string",
+          "format": "date",
+          "description": "Date in YYYY-MM-DD format"
+        },
+        "endDate": {
+          "type": "string",
+          "format": "date",
+          "description": "Date in YYYY-MM-DD format"
+        }
+      },
+      "required": [
+        "startDate",
+        "endDate"
+      ]
+    },
+    "Event": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "fullDescription": {
+          "type": "string"
+        },
+        "shortDescription": {
+          "type": "string"
+        },
+        "imageUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "interestType": {
+          "type": "string",
+          "enum": [
+            "concerts",
+            "sports",
+            "artDesign",
+            "localCulture",
+            "culinary"
+          ]
+        },
+        "dateRange": {
+          "$ref": "#/definitions/DateRange"
+        },
+        "eventWebsite": {
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "title",
+        "imageUrl",
+        "fullDescription",
+        "shortDescription",
+        "interestType",
+        "dateRange"
+      ]
+    }
+  },
+  "bundles": [
+    {
+      "imageUrl": "https://assets.amsterdam-dance-event.nl/images/images/transforms/_1200x630_crop_center-center_none/2682388/AMF-Key-Visual-1560x1440.webp",
+      "title": "House & Contemporary Art: ADE Week in Amsterdam",
+      "description": "Five days immersed in Amsterdam Dance Event’s best house nights and a major contemporary photography show — curated for jazz/hip‑hop and house listeners who also love thoughtful design and local culture.",
+      "city": "Amsterdam",
+      "dateRange": {
+        "startDate": "2025-10-22",
+        "endDate": "2025-10-26"
+      },
+      "keyEvents": [
+        {
+          "title": "AMF (Amsterdam Music Festival) — Johan Cruijff ArenA (ADE flagship) — 25 Oct 2025",
+          "fullDescription": "AMF is ADE’s arena-scale house and electronic showcase — a night built for big-room DJ performances and main-stage moments. During ADE week (Oct 22–26), AMF gathers international house and electronic artists for a high-energy evening designed around dancefloor hooks and crowd chemistry. For a listener who favors house, AMF is the most direct way to experience the continent’s scene at scale: theatrical lighting, curated DJ sets, and a crowd that understands groove.\n\n"This is not a background club night — it’s an event that celebrates contemporary electronic production and DJ craft. Expect extended mixes, guest drops and headline sets that lean into peak-time house. If you love house textures, AMF gives both the polished stadium spectacle and the smaller moments where DJs drop unexpected, soulful edits that nod to classic house."",
+          "shortDescription": "ADE’s arena showcase for house and large-scale electronic sets (AMF at Johan Cruijff ArenA, 25 Oct 2025).",
+          "imageUrl": "https://assets.amsterdam-dance-event.nl/images/images/transforms/_1200x630_crop_center-center_none/2682388/AMF-Key-Visual-1560x1440.webp",
+          "interestType": "concerts",
+          "dateRange": {
+            "startDate": "2025-10-25",
+            "endDate": "2025-10-25"
+          },
+          "eventWebsite": "https://www.amsterdam-dance-event.nl/en/program/2025/amf-2025/2682387/"
+        },
+        {
+          "title": "Erwin Olaf — Stedelijk Museum Amsterdam (major photography exhibition)",
+          "fullDescription": "Erwin Olaf’s retrospective at the Stedelijk is a major contemporary photography show that pairs striking visual style with careful staging — a natural fit for travellers who enjoy the visual language of design and scene culture. Olaf’s work sits at the intersection of fashion, portraiture and staged tableau; seeing this exhibition in Amsterdam’s modernist Stedelijk gives the images context within European design traditions.\n\n"The exhibition runs through the winter but is in full force during ADE week; it’s a thoughtful counterpoint to the city’s nightlife, offering moments of slow visual attention after high-energy sets. For someone who listens to jazz/hip‑hop and house, Olaf’s images are a reminder of how portraiture, staging and rhythm can inform one another across mediums — it’s an artistic complement to a musically-focused trip."",
+          "shortDescription": "Major Erwin Olaf retrospective at the Stedelijk (exhibition open during your dates).",
+          "imageUrl": "https://s3-eu-west-1.amazonaws.com/production-static-stedelijk/images/grrr/scaled/1024/homepage-thumbnail-nobutton-1.png",
+          "interestType": "artDesign",
+          "dateRange": {
+            "startDate": "2025-10-11",
+            "endDate": "2026-03-01"
+          },
+          "eventWebsite": "https://www.stedelijk.nl/en/exhibitions/erwin-olaf-en"
+        }
+      ],
+      "minorEvents": [
+        {
+          "title": "AmsterDance — Palladium ADE club night (Saturday 25 Oct 2025)",
+          "fullDescription": "AmsterDance slots into ADE’s club roster as a focused house night with DJs who favour groove, vocal edits and deep dancefloor moments. It’s smaller and more immediate than AMF but still programmed for peak-time house lovers. If you want an intimate but polished club experience after a festival arena night, this is the natural follow-up.\n\n" ,
+          "shortDescription": "A Palladium house night during ADE — tighter club programming focused on house and soulful sets.",
+          "imageUrl": "https://cdn.amsterdam-dance-event.nl/images/images/transforms/_1200x630_crop_center-center_none/2738087/Palladium-ade-2025-Story_2025-09-27-212514_nhtr.webp",
+          "interestType": "concerts",
+          "dateRange": {
+            "startDate": "2025-10-25",
+            "endDate": "2025-10-25"
+          },
+          "eventWebsite": "https://www.amsterdam-dance-event.nl/en/program/2025/amsterdance-saturday-25th-of-october/2665657/"
+        },
+        {
+          "title": "ADE (Amsterdam Dance Event) — Festival & Talks (ADE Lab + city programme) — 22–26 Oct 2025",
+          "fullDescription": "ADE’s week-long programme is more than club nights: ADE Lab, daytime talks, and city-based pop-ups connect production, design and local culture. For travellers this means you can drop into panels on music production, see audiovisual installations at creative hubs like Westergas, and catch off‑programme art/music crossovers that mirror your interests in both sound and design.\n\n" ,
+          "shortDescription": "ADE’s daytime labs and city events — a local-culture and industry program that runs across the festival week.",
+          "imageUrl": "https://cdn.amsterdam-dance-event.nl/images/images/transforms/news-items/_1200x630_crop_center-center_none/2665287/ADE25_Line-up_release_5-0-00-15-12-copy4.webp",
+          "interestType": "localCulture",
+          "dateRange": {
+            "startDate": "2025-10-22",
+            "endDate": "2025-10-26"
+          },
+          "eventWebsite": "https://www.amsterdam-dance-event.nl/"
+        }
+      ]
+    },
+    {
+      "imageUrl": "http://designmuseum.org//image/e865d67e-1b76-4373-b731-c3a677c277e1?width=1920?width=240&height=240",
+      "title": "London Jazz & Design: Festival Sets + Design Museum Opening",
+      "description": "A six-day London trip that pairs a headline jazz set from the EFG London Jazz Festival with the Design Museum’s big new exhibition — rounded out by a discovery concert and a quintessential London winter fête.",
+      "city": "London",
+      "dateRange": {
+        "startDate": "2025-11-19",
+        "endDate": "2025-11-24"
+      },
+      "keyEvents": [
+        {
+          "title": "Makaya McCraven — EFG London Jazz Festival (headline set) — 19 Nov 2025",
+          "fullDescription": "Makaya McCraven is a contemporary drummer/producer who moves fluidly between jazz improvisation and beat‑driven production — a natural match for your jazz/hip‑hop tastes. Though Makaya is not a named artist in a provided artist list (you didn’t supply individual artists), he’s worth discovering: his recent album In These Times and single “Seventh String” show how he merges live jazz energy with modern production techniques. Seeing him at the EFG London Jazz Festival places that hybrid sound in a venue built for attentive listening and sonic detail.\n\n" ,
+          "shortDescription": "Makaya McCraven’s headline set at the EFG London Jazz Festival — modern jazz with beat-led textures (19 Nov 2025).",
+          "imageUrl": "https://s3.eu-west-2.amazonaws.com/s3.serious.org.uk/images/_1200x630_crop_center-center_82_none_ns/MakayaMcCraven_PhotoBy_SulyimanStokes-1.jpg?mtime=1741966793",
+          "interestType": "concerts",
+          "dateRange": {
+            "startDate": "2025-11-19",
+            "endDate": "2025-11-19"
+          },
+          "eventWebsite": "https://efglondonjazzfestival.org.uk/events/makaya-mccraven-2"
+        },
+        {
+          "title": "Wes Anderson: The Archives — Design Museum London (opening) — 21 Nov 2025",
+          "fullDescription": "The Design Museum’s Wes Anderson show collects the director’s objects, props and design influences into a museum-scale archive. It’s an exhibition that reads like a study in mise-en-scène and color palette — precisely the kind of visual storytelling that appeals to people who care about design, curation and carefully staged imagery. If your travels combine listening and looking, this show provides a sustained, slow-view contrast to live music nights.\n\n" ,
+          "shortDescription": "Design Museum’s archive-style exhibition showcasing Wes Anderson’s cinematic design language (opens 21 Nov 2025).",
+          "imageUrl": "http://designmuseum.org//image/e865d67e-1b76-4373-b731-c3a677c277e1?width=1920?width=240&height=240",
+          "interestType": "artDesign",
+          "dateRange": {
+            "startDate": "2025-11-21",
+            "endDate": "2026-07-26"
+          },
+          "eventWebsite": "https://designmuseum.org/exhibitions/wes-anderson-the-archives"
+        }
+      ],
+      "minorEvents": [
+        {
+          "title": "tUnE‑yArDs — EFG London Jazz Festival (discovery set) — 22 Nov 2025",
+          "fullDescription": "tUnE‑yArDs is not on your supplied artist list either, but it’s a great discovery if you like rhythm-forward, experimental songcraft that sits between jazz, indie and electronic textures. Key songs to preview include 'Water Fountain' and 'Bizness' — both showcase Merrill Garbus’s knack for dense percussion, call-and-response vocals and inventive arrangements. Their festival set will feel alive and unpredictable, a good counterbalance to the more focused jazz headliner.\n\n" ,
+          "shortDescription": "Tune‑Yards at EFG London Jazz Festival — genre-bending, rhythm-forward live performance (22 Nov 2025).",
+          "imageUrl": "https://s3.eu-west-2.amazonaws.com/s3.serious.org.uk/images/_1200x630_crop_center-center_82_none_ns/Screenshot-2025-03-06-175431.png?mtime=1741283695",
+          "interestType": "concerts",
+          "dateRange": {
+            "startDate": "2025-11-22",
+            "endDate": "2025-11-22"
+          },
+          "eventWebsite": "https://efglondonjazzfestival.org.uk/events/tune-yards"
+        },
+        {
+          "title": "Hyde Park Winter Wonderland — seasonal fair and local culture (open during trip)",
+          "fullDescription": "Hyde Park’s Winter Wonderland is London’s seasonal spectacle: a mix of ice rinks, pop-up performances, craft market stalls and late-night food. During a late-November visit it’s a perfect local-culture counterpoint to festival evenings — charming, lively and a reminder of London’s seasonal rhythms. Wander the stalls for design-focused gifts, hot mulled drinks and late-night street-food that help make the city feel festive.\n\n" ,
+          "shortDescription": "Iconic London winter fair — markets, rides and pop-up shows in Hyde Park while the festival runs.",
+          "imageUrl": "https://hydeparkwinterwonderland.com/wp-content/uploads/2025/08/cropped-facivon-180x180.png",
+          "interestType": "localCulture",
+          "dateRange": {
+            "startDate": "2025-11-14",
+            "endDate": "2026-01-04"
+          },
+          "eventWebsite": "https://hydeparkwinterwonderland.com/"
+        }
+      ]
+    },
+    {
+      "imageUrl": "https://www.berlinerfestspiele.de/magnoliaPublic/.imaging/mte/bfs-de-fe/meta/dam/bfs-de/Fallback-Bilder/fallback-bild-jazzfest-berlin.png/jcr:content/Jazzfest%20Berlin%202025_3_zu_2.png",
+      "title": "Berlin: Jazzfest & Creative Nights (a blended cultural week)",
+      "description": "Five days in Berlin built around Jazzfest Berlin’s main programme and the festival’s community film and gallery crossovers — with a late‑night Berghain experience for house/techno lovers and a classic club jazz stop.",
+      "city": "Berlin",
+      "dateRange": {
+        "startDate": "2025-10-29",
+        "endDate": "2025-11-02"
+      },
+      "keyEvents": [
+        {
+          "title": "Jazzfest Berlin — Main programme (headline concerts) — 30 Oct to 02 Nov 2025",
+          "fullDescription": "Jazzfest Berlin is one of Europe’s most thoughtful jazz festivals, bringing international improvisers and boundary-pushing artists to attentive stages. The festival’s programming leans toward adventurous jazz that frequently crosses into beat-driven and beat-aware territories — a strong fit for listeners who like jazz with hip‑hop sensibilities. The festival’s headline concerts provide the space for long-form improvisations, guest collaborations and music that rewards focused listening.\n\n" ,
+          "shortDescription": "Jazzfest Berlin main programme — curated, adventurous jazz and cross-genre projects (30 Oct–02 Nov 2025).",
+          "imageUrl": "https://www.berlinerfestspiele.de/magnoliaPublic/.imaging/mte/bfs-de-fe/meta/dam/bfs-de/Fallback-Bilder/fallback-bild-jazzfest-berlin.png/jcr:content/Jazzfest%20Berlin%202025_3_zu_2.png",
+          "interestType": "concerts",
+          "dateRange": {
+            "startDate": "2025-10-30",
+            "endDate": "2025-11-02"
+          },
+          "eventWebsite": "https://www.berlinerfestspiele.de/en/jazzfest-berlin"
+        },
+        {
+          "title": "Jazzfest Community Week — Gropius Bau film & interdisciplinary programme — 27–31 Oct 2025",
+          "fullDescription": "As part of Jazzfest’s city programme, Community Week stages film programmes, gallery crossovers and kietz (neighbourhood) concerts that bring jazz into museum and public spaces. At Gropius Bau you’ll find city‑scale audiovisual projects and film programmes that treat jazz as a cultural conversation between sound, image and public life. It’s a compelling meeting point for those who want design-forward cultural moments alongside live music.\n\n" ,
+          "shortDescription": "Gropius Bau’s festival-related film and AV programme — where jazz meets visual art during Community Week.",
+          "imageUrl": "https://www.berlinerfestspiele.de/magnoliaPublic/.imaging/mte/bfs-de-fe/meta/dam/bfs-de/Jazzfest-Berlin/2025/jfb25_community-outreach/jfb19_20191103_kiezkonzerte_c_adam_janisch--29-.jpg/jcr:content/jfb19_20191103_kiezkonzerte_c_adam_janisch--29-.jpg",
+          "interestType": "artDesign",
+          "dateRange": {
+            "startDate": "2025-10-27",
+            "endDate": "2025-10-31"
+          },
+          "eventWebsite": "https://www.berlinerfestspiele.de/en/jazzfest-berlin/programm/2025/community-week"
+        }
+      ],
+      "minorEvents": [
+        {
+          "title": "Berghain / Kantine late‑night — special party (31 Oct 2025)",
+          "fullDescription": "Berlin’s club culture needs no long introduction, and a late‑night at Berghain (or Kantine) gives house and techno a very different social context from festival halls. The club’s programming occasionally overlaps with festival weeks; a single-night visit is an intense, communal way to experience Berlin’s dancefloor culture and sonic depth.\n\n" ,
+          "shortDescription": "Berghain late-night party — an essential Berlin club experience for house/techno fans (31 Oct 2025).",
+          "imageUrl": "https://www.berghain.berlin/static/berghain/og-image.jpg",
+          "interestType": "concerts",
+          "dateRange": {
+            "startDate": "2025-10-31",
+            "endDate": "2025-10-31"
+          },
+          "eventWebsite": "https://www.berghain.berlin/en/program/archive/2025/10/"
+        },
+        {
+          "title": "A‑Trane — Club jazz late set (festival-affiliated club shows during Jazzfest week)",
+          "fullDescription": "A‑Trane is one of Berlin’s classic jazz clubs — intimate stages, attentive crowds and late-night sets that can feel like a conversation between musicians and the room. During Jazzfest week local and visiting artists often drop into club programmes for stripped-down, immediate performances. It’s the perfect way to end an evening after bigger festival concerts.\n\n" ,
+          "shortDescription": "A‑Trane club late set — intimate jazz close to the festival circuit during Jazzfest week.",
+          "imageUrl": "https://a-trane.de/wp-content/uploads/2019/03/cropped-a-trane_logo-neon-1-e1556482849746-180x180.jpg",
+          "interestType": "localCulture",
+          "dateRange": {
+            "startDate": "2025-10-30",
+            "endDate": "2025-10-31"
+          },
+          "eventWebsite": "https://a-trane.de/"
+        }
+      ]
+    }
+  ]
+}

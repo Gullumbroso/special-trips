@@ -1,7 +1,8 @@
 import { Event } from "@/lib/types";
 import { formatDateRange } from "@/lib/utils";
-import { INTEREST_LABELS, INTEREST_EMOJIS } from "@/lib/constants";
+import { INTEREST_EMOJIS } from "@/lib/constants";
 import ImageWithFallback from "../ui/ImageWithFallback";
+import Chip from "../ui/Chip";
 
 interface EventCardProps {
   event: Event;
@@ -15,16 +16,21 @@ export default function EventCard({ event, isMinor = false }: EventCardProps) {
     : Math.floor(Math.random() * 10) + 1;
 
   return (
-    <div className={`bg-white rounded-lg overflow-hidden mb-6 ${isMinor ? "opacity-90" : ""}`}>
+    <div className={`mb-12 ${isMinor ? "opacity-90" : ""}`}>
+      {/* Event Title */}
+      <h3 className="font-serif text-xl font-semibold mb-4">
+        {INTEREST_EMOJIS[event.interestType]} {event.title}
+      </h3>
+
       {/* Event Image */}
-      <div className={`relative w-full ${!event.imageUrl ? "h-48" : ""}`}>
+      <div className={`relative w-full mb-4 rounded-lg overflow-hidden ${!event.imageUrl ? "h-48" : ""}`}>
         {event.imageUrl ? (
           <ImageWithFallback
             src={event.imageUrl}
             alt={event.title}
             width={800}
             height={600}
-            className="w-full h-auto"
+            className="w-full h-auto rounded-lg"
           />
         ) : (
           <>
@@ -45,37 +51,26 @@ export default function EventCard({ event, isMinor = false }: EventCardProps) {
       </div>
 
       {/* Content */}
-      <div className="p-5">
-        {/* Interest Badge */}
-        <div className="inline-flex items-center gap-1 px-3 py-1 bg-secondary/10 rounded-full text-sm mb-3">
-          <span>{INTEREST_EMOJIS[event.interestType]}</span>
-          <span className="text-black">{INTEREST_LABELS[event.interestType]}</span>
+      <div>
+        {/* Date and Website Link Row */}
+        <div className="flex items-center justify-between mb-4">
+          <Chip>{formatDateRange(event.dateRange)}</Chip>
+          {event.eventWebsite && (
+            <a
+              href={event.eventWebsite}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-secondary font-medium hover:text-secondary/80 transition-colors"
+            >
+              <span>→</span>
+              <span>Go to website</span>
+            </a>
+          )}
         </div>
 
-        <h3 className="font-serif text-xl font-semibold mb-2">
-          {event.title}
-        </h3>
-
-        <div className="text-sm text-black mb-4">
-          {formatDateRange(event.dateRange)}
-        </div>
-
-        <p className="text-base font-normal text-black mb-4 leading-relaxed">
+        <p className="text-base font-normal text-black leading-relaxed">
           {event.fullDescription}
         </p>
-
-        {/* Website Link */}
-        {event.eventWebsite && (
-          <a
-            href={event.eventWebsite}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-secondary font-medium hover:text-secondary/80 transition-colors"
-          >
-            <span>Go to website</span>
-            <span>→</span>
-          </a>
-        )}
       </div>
     </div>
   );

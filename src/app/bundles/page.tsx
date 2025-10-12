@@ -53,16 +53,12 @@ export default function BundlesPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="sticky top-0 bg-background border-b border-gray-200 px-6 py-4 z-10">
+      <div className="sticky top-0 bg-background px-4 py-4 z-10">
         <Logo size="sm" />
       </div>
 
       {/* Bundles Feed */}
-      <div className="px-6 py-8">
-        <h2 className="font-serif text-2xl font-semibold mb-6">
-          Your Trip Bundles
-        </h2>
-
+      <div className="px-4 py-8">
         {bundles.map((bundle, index) => (
           <BundleCard key={index} bundle={bundle} index={index} />
         ))}

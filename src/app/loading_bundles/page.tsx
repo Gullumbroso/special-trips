@@ -350,8 +350,8 @@ export default function LoadingBundlesPage() {
         {/* Spinner */}
         <div className="mb-8">
           <svg width="36" height="36" viewBox="0 0 36 36" className="animate-spin">
-            <circle cx="18" cy="18" r="16" fill="none" stroke="#B8F501" strokeWidth="2" opacity="0.3"/>
-            <path d="M18 2 A16 16 0 0 1 34 18" fill="none" stroke="#B8F501" strokeWidth="2" strokeLinecap="round"/>
+            <circle cx="18" cy="18" r="16" fill="none" stroke="#B8F501" strokeWidth="4" opacity="0.25"/>
+            <path d="M18 2 A16 16 0 0 1 34 18" fill="none" stroke="#B8F501" strokeWidth="4" strokeLinecap="round"/>
           </svg>
         </div>
 

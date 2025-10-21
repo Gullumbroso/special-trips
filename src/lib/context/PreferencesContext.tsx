@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { UserPreferences, InterestType, TripBundle, SpotifyMusicProfile } from "../types";
+import { migrateLegacyStorage } from "../utils/migrateLegacyStorage";
 
 interface PreferencesContextType {
   preferences: UserPreferences;
@@ -32,6 +33,9 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 
   // Hydrate from localStorage on mount
   useEffect(() => {
+    // Clean up legacy localStorage keys from old architecture
+    migrateLegacyStorage();
+
     const storedPrefs = localStorage.getItem("userPreferences");
     const storedBundles = localStorage.getItem("generatedBundles");
 

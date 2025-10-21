@@ -126,8 +126,8 @@ export default function BundlesPage() {
         cancelLabel="Cancel"
         onConfirm={() => {
           resetPreferences();
-          // Clear the session ID so a new session starts
-          localStorage.removeItem('special-trips-session-id');
+          // Clear ALL storage items for a completely fresh start
+          localStorage.removeItem('special-trips-generation-id');
           router.push("/welcome");
         }}
       />

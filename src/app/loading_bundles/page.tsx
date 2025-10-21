@@ -6,48 +6,46 @@ import { usePreferences } from "@/lib/context/PreferencesContext";
 import Logo from "@/components/ui/Logo";
 import EmptyBundlesState from "@/components/EmptyBundlesState";
 
-interface ReasoningSummary {
-  id: string;
-  text: string;
-  timestamp: number;
-}
+// Storage key for generation ID
+const STORAGE_KEY_GENERATION_ID = 'special-trips-generation-id';
 
-// Storage keys
-const STORAGE_KEY_RESPONSE_ID = 'special-trips-response-id';
-const STORAGE_KEY_CURSOR = 'special-trips-cursor';
+// Polling interval in milliseconds
+const POLL_INTERVAL_MS = 25000; // 25 seconds
 
-// Retrieve OpenAI response ID from localStorage (if exists)
-function getStoredResponseId(): string | null {
+// Generic loading messages to display
+const LOADING_MESSAGES = [
+  "Analyzing your preferences...",
+  "Searching for the best events...",
+  "Crafting your perfect bundles...",
+  "Finding hidden gems...",
+  "Personalizing your experience...",
+  "Almost there...",
+];
+
+// Retrieve generation ID from localStorage (if exists)
+function getStoredGenerationId(): string | null {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem(STORAGE_KEY_RESPONSE_ID);
-}
-
-// Retrieve cursor from localStorage (if exists)
-function getStoredCursor(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem(STORAGE_KEY_CURSOR);
+  return localStorage.getItem(STORAGE_KEY_GENERATION_ID);
 }
 
 export default function LoadingBundlesPage() {
   const router = useRouter();
   const { preferences, bundles, setBundles, isHydrated } = usePreferences();
-  const [reasoningSummaries, setReasoningSummaries] = useState<ReasoningSummary[]>([]);
   const hasInitiatedRef = useRef(false);
-  const [, setResponseId] = useState<string | null>(null);
-  const [, setCursor] = useState<string | null>(null);
-  const eventSourceRef = useRef<EventSource | null>(null);
   const [showEmptyState, setShowEmptyState] = useState(false);
   const startTimeRef = useRef<number | null>(null);
   const [isResuming, setIsResuming] = useState(false);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [loadingMessage, setLoadingMessage] = useState(LOADING_MESSAGES[0]);
 
   useEffect(() => {
     // Wait for PreferencesContext to hydrate from localStorage
     if (!isHydrated) {
-      console.log("quiting due to hydration");
-      return; 
+      console.log("[Client] Waiting for hydration");
+      return;
     }
 
-    // Prevent double-running in strict mode or if hydration triggers twice
+    // Prevent double-running in strict mode
     if (hasInitiatedRef.current) return;
     hasInitiatedRef.current = true;
 
@@ -60,28 +58,12 @@ export default function LoadingBundlesPage() {
           return;
         }
 
-        // SECOND: Check if we have a stored OpenAI response ID
-        const storedResponseId = getStoredResponseId();
-        const storedCursor = getStoredCursor();
+        // SECOND: Check if we have a stored generation ID
+        const storedGenerationId = getStoredGenerationId();
 
-        // If we have cursor but no responseId, something went wrong - clear cursor
-        if (storedCursor && !storedResponseId) {
-          console.warn("⚠️ Found cursor but no responseId - clearing cursor");
-          localStorage.removeItem(STORAGE_KEY_CURSOR);
-          // Start fresh
-          console.log("🆕 Starting fresh generation");
-          startStreaming(null, null);
-          return;
-        }
-
-        if (storedResponseId) {
-          console.log(`🔍 Found stored response ${storedResponseId}`);
-          setResponseId(storedResponseId);
-          setIsResuming(true); // Mark that we're resuming
-          if (storedCursor) {
-            console.log(`📍 Found cursor: ${storedCursor.substring(0, 20)}...`);
-            setCursor(storedCursor);
-          }
+        if (storedGenerationId) {
+          console.log(`🔍 Found stored generation ${storedGenerationId}`);
+          setIsResuming(true);
 
           // Start timer for resumed session
           if (!startTimeRef.current) {
@@ -89,221 +71,139 @@ export default function LoadingBundlesPage() {
             console.log('⏱️ Client timer started (resuming)');
           }
 
-          // First check if the response already completed while we were away
-          try {
-            const statusResponse = await fetch(`/api/openai/responses/${storedResponseId}`);
-            if (statusResponse.ok) {
-              const data = await statusResponse.json();
-              console.log(`📊 Response status: ${data.status}`);
-
-              if (data.status === 'completed' && data.bundles) {
-                console.log(`✅ Response already completed with ${data.bundles.length} bundles`);
-                // Clear storage
-                localStorage.removeItem(STORAGE_KEY_CURSOR);
-                localStorage.removeItem(STORAGE_KEY_RESPONSE_ID);
-
-                // Save bundles and navigate
-                if (data.bundles.length === 0) {
-                  setShowEmptyState(true);
-                } else {
-                  setBundles(data.bundles);
-                  router.push("/bundles");
-                }
-                return;
-              }
-
-              // If not completed or has error, resume streaming
-              console.log(`🔄 Response not complete, resuming stream...`);
-            }
-          } catch (error) {
-            console.error("Failed to check response status:", error);
-            // Continue with resuming stream on error
-          }
-
-          // Resume streaming from where we left off
-          startStreaming(storedResponseId, storedCursor);
+          // Start polling immediately
+          startPolling(storedGenerationId);
           return;
         }
 
-        // If no stored response, start new generation
+        // THIRD: No stored generation, start new one
         console.log("🆕 Starting fresh generation");
-        startStreaming(null, null);
+        startNewGeneration();
       } catch (error) {
         console.error("Error initializing:", error);
         router.push("/error?message=" + encodeURIComponent("Failed to start generation"));
       }
     }
 
-    function startStreaming(existingResponseId: string | null, existingCursor: string | null) {
-      // Close any existing EventSource
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
+    async function startNewGeneration() {
+      try {
+        // Start timer
+        if (!startTimeRef.current) {
+          startTimeRef.current = Date.now();
+          console.log('⏱️ Client timer started');
+        }
+
+        console.log("[Client] Calling POST /api/generations");
+
+        // Start generation (this will block on server until complete)
+        const response = await fetch('/api/generations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ preferences }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to start generation');
+        }
+
+        const data = await response.json();
+        console.log(`[Client] Generation started: ${data.generationId}, status: ${data.status}`);
+
+        // Store generation ID
+        localStorage.setItem(STORAGE_KEY_GENERATION_ID, data.generationId);
+
+        // If already completed (fast response), handle immediately
+        if (data.status === 'completed') {
+          handleCompletion(data.bundles);
+          return;
+        }
+
+        if (data.status === 'failed') {
+          console.error('[Client] Generation failed:', data.error);
+          router.push("/error?message=" + encodeURIComponent(data.error || 'Generation failed'));
+          return;
+        }
+
+        // Start polling for status
+        startPolling(data.generationId);
+      } catch (error) {
+        console.error('[Client] Failed to start generation:', error);
+        router.push("/error?message=" + encodeURIComponent("Failed to start generation"));
       }
-
-      // Start timer
-      if (!startTimeRef.current) {
-        startTimeRef.current = Date.now();
-        console.log('⏱️ Client timer started');
-      }
-
-      // Build URL with query params
-      const params = new URLSearchParams();
-
-      // Always include preferences (needed for tool call execution)
-      params.set('preferences', JSON.stringify(preferences));
-
-      if (existingResponseId) {
-        params.set('responseId', existingResponseId);
-        if (existingCursor) {
-          params.set('startingAfter', existingCursor);
-        }
-      }
-
-      const url = `/api/generate-bundles?${params.toString()}`;
-      const eventSource = new EventSource(url);
-      eventSourceRef.current = eventSource;
-
-      let currentResponseId = existingResponseId || '';
-      let currentCursor = existingCursor || '';
-
-      eventSource.onerror = () => {
-        eventSource.close();
-        eventSourceRef.current = null;
-
-        // If we have a response ID and cursor, we can try to resume
-        if (!currentResponseId) {
-          console.error("Failed to start generation");
-          router.push("/error?message=" + encodeURIComponent("Failed to start generation"));
-        }
-      };
-
-      eventSource.addEventListener('response_id', (e) => {
-        const data = JSON.parse(e.data);
-        currentResponseId = data.responseId;
-        currentCursor = data.cursor || '';
-
-        // Store the response ID and cursor
-        localStorage.setItem(STORAGE_KEY_RESPONSE_ID, currentResponseId);
-        if (currentCursor) {
-          localStorage.setItem(STORAGE_KEY_CURSOR, currentCursor);
-        }
-        setResponseId(currentResponseId);
-        setCursor(currentCursor);
-      });
-
-      eventSource.addEventListener('cursor', (e) => {
-        const data = JSON.parse(e.data);
-        currentCursor = data.cursor;
-
-        // Update cursor in localStorage continuously
-        if (currentCursor) {
-          localStorage.setItem(STORAGE_KEY_CURSOR, currentCursor);
-          setCursor(currentCursor);
-        }
-      });
-
-      eventSource.addEventListener('summary', (e) => {
-        const data = JSON.parse(e.data);
-
-        // Update cursor
-        if (data.cursor) {
-          currentCursor = data.cursor;
-          localStorage.setItem(STORAGE_KEY_CURSOR, currentCursor);
-          setCursor(currentCursor);
-        }
-
-        // Add summary
-        setReasoningSummaries(prev => [...prev, {
-          id: `summary-${Date.now()}-${Math.random()}`,
-          text: data.text,
-          timestamp: Date.now(),
-        }]);
-      });
-
-      eventSource.addEventListener('completed', async (e) => {
-        const data = JSON.parse(e.data);
-
-        // Update final cursor
-        if (data.cursor) {
-          localStorage.setItem(STORAGE_KEY_CURSOR, data.cursor);
-        }
-
-        // Log total client-side time
-        if (startTimeRef.current) {
-          const totalTime = Date.now() - startTimeRef.current;
-          const minutes = Math.floor(totalTime / 60000);
-          const seconds = ((totalTime % 60000) / 1000).toFixed(2);
-          console.log(`⏱️ Client-side total duration: ${minutes}m ${seconds}s`);
-        }
-
-        eventSource.close();
-        eventSourceRef.current = null;
-
-        // Check if bundles are included in the event
-        if (data.bundles && Array.isArray(data.bundles)) {
-          // Clear cursor and response ID after successful completion
-          localStorage.removeItem(STORAGE_KEY_CURSOR);
-          localStorage.removeItem(STORAGE_KEY_RESPONSE_ID);
-
-          if (data.bundles.length === 0) {
-            // Show empty state
-            console.log('[Client] No bundles found, showing empty state');
-            setShowEmptyState(true);
-          } else {
-            // Save bundles and navigate
-            setBundles(data.bundles);
-            router.push("/bundles");
-          }
-        } else {
-          // Fallback: Fetch bundles from API (backward compatibility)
-          await fetchCompletedBundles(data.responseId);
-        }
-      });
-
-      // Handle error events from the server
-      eventSource.addEventListener('error', (e: MessageEvent) => {
-        const data = JSON.parse(e.data);
-
-        // If server tells us to clear storage, do it
-        if (data.clearStorage) {
-          localStorage.removeItem(STORAGE_KEY_RESPONSE_ID);
-          localStorage.removeItem(STORAGE_KEY_CURSOR);
-        }
-
-        eventSource.close();
-        eventSourceRef.current = null;
-
-        // Redirect to error page
-        router.push("/error?message=" + encodeURIComponent(data.error || 'Stream error'));
-      });
-
-      // Note: We already have eventSource.onerror defined above
     }
 
-    async function fetchCompletedBundles(id: string) {
+    function startPolling(genId: string) {
+      console.log(`[Client] Starting polling for generation ${genId} (every ${POLL_INTERVAL_MS}ms)`);
+
+      // Poll immediately (important for resume case)
+      pollStatus(genId);
+
+      // Then poll every 25 seconds
+      pollIntervalRef.current = setInterval(() => {
+        pollStatus(genId);
+      }, POLL_INTERVAL_MS);
+    }
+
+    async function pollStatus(genId: string) {
       try {
-        const response = await fetch(`/api/openai/responses/${id}`);
+        const response = await fetch(`/api/generations/${genId}`);
 
-        if (response.ok) {
-          const data = await response.json();
+        if (!response.ok) {
+          console.error('[Client] Failed to fetch generation status');
+          return;
+        }
 
-          if (data.bundles) {
-            // Clear cursor after successful completion
-            localStorage.removeItem(STORAGE_KEY_CURSOR);
-            localStorage.removeItem(STORAGE_KEY_RESPONSE_ID);
+        const data = await response.json();
+        console.log(`[Client] Poll result - Status: ${data.status}`);
 
-            if (data.bundles.length === 0) {
-              // Show empty state
-              console.log('[Client] No bundles found, showing empty state');
-              setShowEmptyState(true);
-            } else {
-              setBundles(data.bundles);
-              router.push("/bundles");
-            }
+        // Rotate loading message on each poll
+        setLoadingMessage(LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)]);
+
+        // Handle completion
+        if (data.status === 'completed') {
+          stopPolling();
+
+          // Log total client-side time
+          if (startTimeRef.current) {
+            const totalTime = Date.now() - startTimeRef.current;
+            const minutes = Math.floor(totalTime / 60000);
+            const seconds = ((totalTime % 60000) / 1000).toFixed(2);
+            console.log(`⏱️ Client-side total duration: ${minutes}m ${seconds}s`);
           }
+
+          handleCompletion(data.bundles);
+        }
+
+        // Handle failure
+        if (data.status === 'failed') {
+          stopPolling();
+          console.error('[Client] Generation failed:', data.error);
+          router.push("/error?message=" + encodeURIComponent(data.error || 'Generation failed'));
         }
       } catch (error) {
-        console.error("Error fetching bundles:", error);
+        console.error('[Client] Error polling status:', error);
+        // Don't stop polling on error - could be temporary network issue
+      }
+    }
+
+    function stopPolling() {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    }
+
+    function handleCompletion(bundlesData: unknown) {
+      // Clear generation ID from localStorage
+      localStorage.removeItem(STORAGE_KEY_GENERATION_ID);
+
+      if (!bundlesData || !Array.isArray(bundlesData) || bundlesData.length === 0) {
+        console.log('[Client] No bundles found, showing empty state');
+        setShowEmptyState(true);
+      } else {
+        console.log(`[Client] ✅ Received ${bundlesData.length} bundles, saving and navigating`);
+        setBundles(bundlesData);
+        router.push("/bundles");
       }
     }
 
@@ -311,12 +211,11 @@ export default function LoadingBundlesPage() {
 
     // Cleanup on unmount
     return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-        eventSourceRef.current = null;
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
       }
-      // Reset the ref so it can run again if we navigate back to this page
-      hasInitiatedRef.current = false;
+      // DON'T reset hasInitiatedRef - this prevents duplicate generations in React Strict Mode
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isHydrated]); // Only re-run when hydration completes
@@ -342,9 +241,7 @@ export default function LoadingBundlesPage() {
         <p className="text-base font-normal text-black mb-6">
           This might take a few minutes.
           <br />
-          {reasoningSummaries.length > 0
-            ? "We'll let you know once we're done."
-            : "Generating your personalized trip bundles..."}
+          We&apos;ll let you know once we&apos;re done.
         </p>
 
         {/* Spinner */}
@@ -355,31 +252,12 @@ export default function LoadingBundlesPage() {
           </svg>
         </div>
 
-        {/* Reasoning summaries */}
-        {reasoningSummaries.length > 0 && (
-          <div className="relative">
-            <div className="flex flex-col-reverse gap-2">
-              {reasoningSummaries.map((summary, arrayIndex) => {
-                const displayText = summary.text.trim();
-                const isLatest = arrayIndex === reasoningSummaries.length - 1;
-
-                return (
-                  <div
-                    key={summary.id}
-                    style={{
-                      opacity: isLatest ? 0.85 : 0.25,
-                      animation: isLatest ? 'fade-in-slide 0.5s cubic-bezier(0.4, 0, 0.2, 1)' : 'none'
-                    }}
-                  >
-                    <p className="font-bold text-base text-foreground whitespace-pre-line">
-                      {displayText}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        {/* Loading message */}
+        <div className="relative">
+          <p className="font-bold text-base text-foreground opacity-85">
+            {loadingMessage}
+          </p>
+        </div>
       </div>
 
       {/* Bottom gradient */}

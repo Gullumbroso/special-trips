@@ -6,8 +6,6 @@ import { getBundleImageUrl } from '@/lib/utils';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-  timeout: 600000, // 10 minutes - long timeout for reasoning models
-  maxRetries: 0, // Don't retry - fail fast if there's an issue
 });
 
 const PROMPT_ID = 'pmpt_68b758d74f60819593d91d254518d4fc020955df32c90659';
@@ -216,22 +214,10 @@ export async function generateBundles(
     }));
 
     const callStartTime = Date.now();
-    let response;
+    const response = await openai.responses.create(createParams);
+    const callDuration = Date.now() - callStartTime;
 
-    try {
-      response = await openai.responses.create(createParams);
-      const callDuration = Date.now() - callStartTime;
-      console.log(`✅ OpenAI call completed in ${(callDuration / 1000).toFixed(2)}s - Status: ${response.status}`);
-    } catch (error) {
-      const callDuration = Date.now() - callStartTime;
-      console.error(`❌ OpenAI call failed after ${(callDuration / 1000).toFixed(2)}s:`, error);
-      console.error(`Error details:`, {
-        name: error instanceof Error ? error.name : 'Unknown',
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-      });
-      throw error;
-    }
+    console.log(`✅ OpenAI call completed in ${(callDuration / 1000).toFixed(2)}s - Status: ${response.status}`);
 
     // Handle failure
     if (response.status === 'failed') {

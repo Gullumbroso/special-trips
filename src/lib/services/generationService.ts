@@ -214,15 +214,7 @@ export async function generateBundles(
     }));
 
     const callStartTime = Date.now();
-
-    // Add timeout wrapper to detect hanging calls
-    const OPENAI_TIMEOUT = 240000; // 4 minutes
-    const responsePromise = openai.responses.create(createParams);
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error(`OpenAI API call timed out after ${OPENAI_TIMEOUT / 1000}s`)), OPENAI_TIMEOUT);
-    });
-
-    const response = await Promise.race([responsePromise, timeoutPromise]) as Awaited<typeof responsePromise>;
+    const response = await openai.responses.create(createParams);
     const callDuration = Date.now() - callStartTime;
 
     console.log(`✅ OpenAI call completed in ${(callDuration / 1000).toFixed(2)}s - Status: ${response.status}`);

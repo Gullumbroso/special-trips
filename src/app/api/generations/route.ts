@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, waitUntil } from 'next/server';
 import { db } from '@/db/client';
 import { generations } from '@/db/schema';
 import { eq } from 'drizzle-orm';
@@ -7,7 +7,7 @@ import { generateBundles } from '@/lib/services/generationService';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300; // 5 minutes (adjust based on your Vercel plan)
+export const maxDuration = 800; // 5 minutes (adjust based on your Vercel plan)
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,29 +46,31 @@ export async function POST(request: NextRequest) {
     console.log(`[API] Created generation ${generation.id}`);
 
     // Start bundle generation in background (fire-and-forget)
-    // Don't await - let it run asynchronously
-    generateBundles(preferences)
-      .then(async (bundles) => {
-        console.log(`[API] ✅ Generation ${generation.id} completed with ${bundles.length} bundles`);
-        await db.update(generations)
-          .set({
-            status: 'completed',
-            bundles,
-            updatedAt: new Date(),
-          })
-          .where(eq(generations.id, generation.id));
-      })
-      .catch(async (error) => {
-        console.error(`[API] ❌ Generation ${generation.id} failed:`, error);
-        const errorMessage = error instanceof Error ? error.message : 'Generation failed';
-        await db.update(generations)
-          .set({
-            status: 'failed',
-            error: errorMessage,
-            updatedAt: new Date(),
-          })
-          .where(eq(generations.id, generation.id));
-      });
+    // Use waitUntil to keep serverless function alive until promise completes
+    waitUntil(
+      generateBundles(preferences)
+        .then(async (bundles) => {
+          console.log(`[API] ✅ Generation ${generation.id} completed with ${bundles.length} bundles`);
+          await db.update(generations)
+            .set({
+              status: 'completed',
+              bundles,
+              updatedAt: new Date(),
+            })
+            .where(eq(generations.id, generation.id));
+        })
+        .catch(async (error) => {
+          console.error(`[API] ❌ Generation ${generation.id} failed:`, error);
+          const errorMessage = error instanceof Error ? error.message : 'Generation failed';
+          await db.update(generations)
+            .set({
+              status: 'failed',
+              error: errorMessage,
+              updatedAt: new Date(),
+            })
+            .where(eq(generations.id, generation.id));
+        })
+    );
 
     // Return immediately - client will poll GET endpoint for updates
     return NextResponse.json({

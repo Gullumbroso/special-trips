@@ -1,14 +1,25 @@
-import { NextRequest, NextResponse, waitUntil } from 'next/server';
-import { db } from '@/db/client';
-import { generations } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { NextRequest, NextResponse } from 'next/server';
 import { UserPreferences } from '@/lib/types';
-import { generateBundles } from '@/lib/services/generationService';
+import { inngest } from '@/lib/inngest/client';
+import { randomUUID } from 'crypto';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 800; // 5 minutes (adjust based on your Vercel plan)
 
+/**
+ * POST /api/generations
+ *
+ * Creates a new trip bundle generation request.
+ * This endpoint returns immediately - the actual generation happens
+ * asynchronously in an Inngest worker function.
+ *
+ * Flow:
+ * 1. Validate request and generate UUID
+ * 2. Send event to Inngest (fire-and-forget)
+ * 3. Return generationId immediately
+ * 4. Worker creates DB record and generates bundles
+ * 5. Client polls GET /api/generations/[id] for updates
+ */
 export async function POST(request: NextRequest) {
   try {
     // Validate API key is set
@@ -31,50 +42,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('[API] Creating new generation');
+    // Generate UUID upfront so we can return it immediately
+    const generationId = randomUUID();
 
-    // Create generation record with processing status
-    const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 24);
+    console.log(`[API] Creating generation ${generationId}`);
 
-    const [generation] = await db.insert(generations).values({
-      status: 'processing',
-      preferences,
-      expiresAt,
-    }).returning();
+    // Send event to Inngest worker
+    // The worker will:
+    // 1. Create the DB record
+    // 2. Generate bundles
+    // 3. Update DB with results
+    try {
+      await inngest.send({
+        name: 'generation.create',
+        data: {
+          generationId,
+          preferences,
+        },
+      });
 
-    console.log(`[API] Created generation ${generation.id}`);
+      console.log(`[API] Sent generation.create event for ${generationId}`);
+    } catch (error) {
+      console.error('[API] Failed to send Inngest event:', error);
+      return NextResponse.json(
+        { error: 'Failed to initiate generation' },
+        { status: 500 }
+      );
+    }
 
-    // Start bundle generation in background (fire-and-forget)
-    // Use waitUntil to keep serverless function alive until promise completes
-    waitUntil(
-      generateBundles(preferences)
-        .then(async (bundles) => {
-          console.log(`[API] ✅ Generation ${generation.id} completed with ${bundles.length} bundles`);
-          await db.update(generations)
-            .set({
-              status: 'completed',
-              bundles,
-              updatedAt: new Date(),
-            })
-            .where(eq(generations.id, generation.id));
-        })
-        .catch(async (error) => {
-          console.error(`[API] ❌ Generation ${generation.id} failed:`, error);
-          const errorMessage = error instanceof Error ? error.message : 'Generation failed';
-          await db.update(generations)
-            .set({
-              status: 'failed',
-              error: errorMessage,
-              updatedAt: new Date(),
-            })
-            .where(eq(generations.id, generation.id));
-        })
-    );
-
-    // Return immediately - client will poll GET endpoint for updates
+    // Return immediately - worker will create DB record and process
+    // Client will poll GET /api/generations/[id] for status updates
     return NextResponse.json({
-      generationId: generation.id,
+      generationId,
       status: 'processing',
     });
   } catch (error) {

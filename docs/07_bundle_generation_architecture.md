@@ -1,8 +1,8 @@
 # Technical Design Document: Bundle Generation Architecture
 
-**Last Updated:** 2025-10-21
+**Last Updated:** 2025-10-23
 **Status:** ✅ Implemented
-**Version:** 3.0 (Synchronous Mode with Client Polling)
+**Version:** 4.0 (Inngest Worker with Client Polling)
 
 ---
 
@@ -22,7 +22,7 @@
 
 ## Overview
 
-The bundle generation system creates personalized trip bundles using OpenAI's Responses API with reasoning models. The architecture uses a **synchronous server-side generation with client polling** to maintain resilience to client disconnections while keeping the codebase simple.
+The bundle generation system creates personalized trip bundles using OpenAI's Responses API with reasoning models. The architecture uses **Inngest workers for background processing with client polling** to maintain resilience to client disconnections while avoiding Vercel serverless timeout limitations.
 
 ---
 
@@ -31,7 +31,8 @@ The bundle generation system creates personalized trip bundles using OpenAI's Re
 ### Evolution History
 - **v1.0 (SSE Streaming)**: Server-Sent Events with tight coupling, fragile on disconnects
 - **v2.0 (Background Mode)**: OpenAI background mode with reasoning summaries, complex polling
-- **v3.0 (Current)**: Simplified synchronous generation, no real-time summaries
+- **v3.0 (Synchronous + waitUntil)**: Simplified synchronous generation, fire-and-forget with waitUntil()
+- **v4.0 (Current - Inngest)**: Worker-based processing, no Vercel timeout issues
 
 ### Key Requirements
 1. Client must be able to refresh/reconnect without losing progress ✅
@@ -44,45 +45,53 @@ The bundle generation system creates personalized trip bundles using OpenAI's Re
 
 ## Architecture Decision
 
-### Chosen Approach: Synchronous Generation + Client Polling
+### Chosen Approach: Inngest Worker + Client Polling
 
-**Core Principle:** Server generates synchronously, client polls for completion
+**Core Principle:** Worker generates asynchronously on Inngest infrastructure, client polls for completion
 
 ```
-Client → POST → Server creates DB record → Returns generation ID immediately
-                ↓ (fire-and-forget)
-                Generates bundles synchronously (background: false)
-                ↓
-                Saves bundles to DB when complete
+Client → POST → Server generates UUID → Sends Inngest event → Returns immediately
+                                        ↓
+                                    Inngest Worker:
+                                    1. Creates DB record
+                                    2. Generates bundles (2-5 min)
+                                    3. Updates DB when complete
 
 Client polls GET endpoint every 25s → Reads from DB → Gets bundles when ready
 ```
 
 ### Why This Architecture?
 
-1. **Simplicity Over Real-Time Updates**
-   - No OpenAI background mode complexity
-   - No reasoning summary extraction
-   - Straightforward synchronous flow
-   - ~60% less code than v2.0
+1. **No Vercel Timeout Issues**
+   - Worker runs on Inngest's infrastructure (not Vercel)
+   - Can run for up to 1 hour (vs 5 min Vercel limit)
+   - Generation never times out, regardless of complexity
+   - Node.js runtime compatible (no Edge Runtime required)
 
-2. **Database as Source of Truth**
+2. **Worker Manages All DB Operations**
+   - Worker creates DB record (not POST endpoint)
+   - Atomic operation: if worker fails before DB creation, no orphaned records
+   - Clean separation: worker owns entire generation lifecycle
+   - Automatic retries for transient failures (DB, network, etc.)
+
+3. **Database as Source of Truth**
    - Generation state persists across disconnects
    - Client can resume by polling with generation ID
    - Server stateless: no in-memory tracking needed
    - All data cached in DB for fast retrieval
 
-3. **Fire-and-Forget Pattern**
-   - POST endpoint returns immediately
-   - Generation continues in background promise
-   - No blocking of client request
-   - Updates DB when complete
+4. **Robust Error Handling**
+   - Inngest retries worker failures (up to 3 times)
+   - DB failures properly handled with retry logic
+   - Generation failures recorded in DB for client visibility
+   - No silent failures or stuck jobs
 
-4. **Client Resilience**
+5. **Client Resilience**
    - Polls instantly on mount (resume case)
    - Then polls every 25 seconds
-   - Generic loading messages instead of AI summaries
+   - Generic loading messages
    - Seamlessly resumes after refresh/sleep
+   - 404 on first poll is expected (worker creating DB record)
 
 ---
 
@@ -96,9 +105,9 @@ Client polls GET endpoint every 25s → Reads from DB → Gets bundles when read
 └────────────────────────┬────────────────────────────────────────┘
                          ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│ 2. Server: Create DB record                                     │
-│    - status: 'processing'                                       │
-│    - preferences: {...}                                         │
+│ 2. Server: Generate UUID & Send Inngest Event                   │
+│    - generationId = randomUUID()                                │
+│    - inngest.send("generation.create", { generationId, prefs }) │
 └────────────────────────┬────────────────────────────────────────┘
                          ▼
 ┌─────────────────────────────────────────────────────────────────┐
@@ -106,29 +115,40 @@ Client polls GET endpoint every 25s → Reads from DB → Gets bundles when read
 │    { generationId: "gen_123", status: "processing" }            │
 └─────────────────────────┬───────────────────────────────────────┘
                           │
-                          ├─> Client polls GET every 25s
-                          │
-                          ▼ (fire-and-forget)
+                          └─> Client polls GET every 25s
+
 ┌─────────────────────────────────────────────────────────────────┐
-│ 4. Server Background: generateBundles()                         │
-│    - Calls OpenAI with background: false (synchronous)          │
-│    - Waits for completion (2-5 min)                             │
-│    - Handles function calls in loop                             │
-│    - Extracts bundles                                           │
+│ 4. Inngest Worker: Receive "generation.create" event            │
 └────────────────────────┬────────────────────────────────────────┘
                          ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│ 5. Server Background: Update DB                                 │
-│    - status: 'completed'                                        │
-│    - bundles: [...]                                             │
+│ 5. Worker Step 1: Create DB record                              │
+│    - INSERT INTO generations (id, status='processing', ...)     │
+│    - If fails: Inngest retries entire function                  │
+└────────────────────────┬────────────────────────────────────────┘
+                         ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ 6. Worker Step 2: Generate bundles                              │
+│    - Calls generateBundles() (2-5 min, no timeout limit)        │
+│    - OpenAI with background: false (synchronous)                │
+│    - Handles function calls in loop                             │
+│    - Returns bundles or throws error                            │
+└────────────────────────┬────────────────────────────────────────┘
+                         ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ 7. Worker Step 3: Update DB with result                         │
+│    Success: status='completed', bundles=[...]                   │
+│    Failure: status='failed', error="..."                        │
+│    - If update fails: Inngest retries                           │
 └─────────────────────────────────────────────────────────────────┘
                          ▲
                          │
 ┌────────────────────────┴────────────────────────────────────────┐
-│ 6. Client: Poll GET /api/generations/[id] (every 25s)           │
+│ 8. Client: Poll GET /api/generations/[id] (every 25s)           │
 │    - Server reads from DB                                       │
-│    - Returns: { status, bundles }                               │
+│    - Returns: { status, bundles, error }                        │
 │    - No OpenAI calls, pure DB read                              │
+│    - First poll may return 404 (worker hasn't created record)   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -140,37 +160,55 @@ Client polls GET endpoint every 25s → Reads from DB → Gets bundles when read
 │  (Browser)   │
 └──────┬───────┘
        │ POST /api/generations
-       │ GET /api/generations/[id] (poll every 5s)
+       │ GET /api/generations/[id] (poll every 25s)
        │
        ▼
-┌─────────────────────────────────────┐
-│   Next.js API Routes                │
-│  ┌─────────────────────────────┐    │
-│  │ POST /api/generations       │    │
-│  │ - initiateGeneration()      │    │
-│  │ - Save to DB                │    │
-│  │ - Return immediately        │    │
-│  └─────────────────────────────┘    │
-│                                      │
-│  ┌─────────────────────────────┐    │
-│  │ GET /api/generations/[id]   │    │
-│  │ - Fetch from DB             │    │
-│  │ - Check OpenAI status       │    │
-│  │ - Extract bundles if ready  │    │
-│  │ - Return state + summaries  │    │
-│  └─────────────────────────────┘    │
-└──────┬────────────────┬─────────────┘
-       │                │
-       │                │
-       ▼                ▼
-┌──────────────┐  ┌──────────────────┐
-│  PostgreSQL  │  │  OpenAI API      │
-│  (Supabase)  │  │  (Responses API) │
-│              │  │                  │
-│ generations  │  │ - background:true│
-│   table      │  │ - reasoning      │
-└──────────────┘  │ - function calls │
-                  └──────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│   Next.js API Routes (Vercel)                           │
+│  ┌─────────────────────────────┐                        │
+│  │ POST /api/generations       │                        │
+│  │ - Generate UUID             │                        │
+│  │ - Send Inngest event        │                        │
+│  │ - Return immediately        │                        │
+│  └────────────┬────────────────┘                        │
+│               │                                          │
+│               │ inngest.send("generation.create")       │
+│               │                                          │
+│  ┌────────────▼────────────────┐                        │
+│  │ POST/GET /api/inngest       │                        │
+│  │ - Inngest webhook endpoint  │                        │
+│  │ - Serves worker functions   │                        │
+│  └─────────────────────────────┘                        │
+│                                                          │
+│  ┌─────────────────────────────┐                        │
+│  │ GET /api/generations/[id]   │                        │
+│  │ - Read from DB              │                        │
+│  │ - Return status & bundles   │                        │
+│  └─────────────────────────────┘                        │
+└──────┬───────────────────────┬──────────────────────────┘
+       │                       │
+       │                       └──────────────┐
+       ▼                                      ▼
+┌──────────────┐                    ┌────────────────────┐
+│  PostgreSQL  │                    │  Inngest Cloud     │
+│  (Supabase)  │                    │                    │
+│              │◄───────────────────┤  Worker Function:  │
+│ generations  │  DB Operations     │  - Receive event   │
+│   table      │  (create/update)   │  - Create DB rec   │
+└──────────────┘                    │  - Generate bundles│
+                                    │  - Update DB       │
+                                    └─────────┬──────────┘
+                                              │
+                                              ▼
+                                    ┌──────────────────┐
+                                    │  OpenAI API      │
+                                    │  (Responses API) │
+                                    │                  │
+                                    │ - background:    │
+                                    │   false          │
+                                    │ - reasoning      │
+                                    │ - function calls │
+                                    └──────────────────┘
 ```
 
 ---
@@ -241,59 +279,209 @@ export async function generateBundles(
 
 ### 2. POST Endpoint (`src/app/api/generations/route.ts`)
 
-**Purpose:** Create generation record and start processing (fire-and-forget)
+**Purpose:** Generate UUID and trigger Inngest worker
 
 **Flow:**
 1. Validate preferences
-2. Create DB record with status `'processing'`
-3. Return generation ID immediately
-4. Start `generateBundles()` in background (don't await)
-5. Update DB when complete
+2. Generate UUID for generation ID
+3. Send Inngest event with generation ID and preferences
+4. Return generation ID immediately
+5. Worker handles all DB operations and generation
 
-**Response Time:** < 1 second (returns before generation starts)
+**Response Time:** < 1 second (just sends event, no DB operations)
 
 ```typescript
 export async function POST(request: NextRequest) {
-  const preferences = await request.json();
+  const body = await request.json();
+  const preferences: UserPreferences = body.preferences;
 
-  // Create generation record
-  const [generation] = await db.insert(generations).values({
-    status: 'processing',
-    preferences,
-    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-  }).returning();
+  if (!preferences) {
+    return NextResponse.json(
+      { error: 'Missing preferences in request body' },
+      { status: 400 }
+    );
+  }
 
-  // Start generation in background (fire-and-forget)
-  generateBundles(preferences)
-    .then(async (bundles) => {
-      // Update DB when complete
-      await db.update(generations)
-        .set({ status: 'completed', bundles, updatedAt: new Date() })
-        .where(eq(generations.id, generation.id));
-    })
-    .catch(async (error) => {
-      // Update DB on error
-      await db.update(generations)
-        .set({ status: 'failed', error: error.message, updatedAt: new Date() })
-        .where(eq(generations.id, generation.id));
+  // Generate UUID upfront so we can return it immediately
+  const generationId = randomUUID();
+
+  console.log(`[API] Creating generation ${generationId}`);
+
+  // Send event to Inngest worker
+  // The worker will:
+  // 1. Create the DB record
+  // 2. Generate bundles
+  // 3. Update DB with results
+  try {
+    await inngest.send({
+      name: 'generation.create',
+      data: {
+        generationId,
+        preferences,
+      },
     });
 
-  // Return immediately - client will poll
+    console.log(`[API] Sent generation.create event for ${generationId}`);
+  } catch (error) {
+    console.error('[API] Failed to send Inngest event:', error);
+    return NextResponse.json(
+      { error: 'Failed to initiate generation' },
+      { status: 500 }
+    );
+  }
+
+  // Return immediately - worker will create DB record and process
+  // Client will poll GET /api/generations/[id] for status updates
   return NextResponse.json({
-    generationId: generation.id,
+    generationId,
     status: 'processing',
   });
 }
 ```
 
 **Key Points:**
-- Fire-and-forget pattern: don't await `generateBundles()`
-- Promise chain updates DB when complete
-- Client doesn't wait for generation
+- No DB operations in POST endpoint (worker handles them)
+- Validates Inngest event send before returning
+- Client can immediately start polling with returned ID
+- Worker may not have created DB record yet (404 expected on first poll)
 
 ---
 
-### 3. GET Endpoint (`src/app/api/generations/[id]/route.ts`)
+### 3. Inngest Worker (`src/lib/inngest/functions.ts`)
+
+**Purpose:** Execute generation asynchronously on Inngest infrastructure
+
+**Flow:**
+1. **Step 1 - Create DB Record:** Insert generation with status='processing'
+2. **Step 2 - Generate Bundles:** Call `generateBundles()` service (2-5 min)
+3. **Step 3 - Update DB:** Save bundles or error to database
+
+**Execution Environment:** Runs on Inngest Cloud (not Vercel)
+- No Vercel timeout limits (can run up to 1 hour)
+- Automatic retries on failure (up to 3 times)
+- Step-based execution for granular retry control
+
+```typescript
+export const generateTripBundles = inngest.createFunction(
+  {
+    id: 'generate-trip-bundles',
+    name: 'Generate Trip Bundles',
+    retries: 3, // Retry DB failures and transient errors
+  },
+  { event: 'generation.create' },
+  async ({ event, step }) => {
+    const { generationId, preferences } = event.data;
+
+    // Step 1: Create generation record in DB
+    // If this fails, Inngest will retry the entire function
+    await step.run('create-generation-record', async () => {
+      try {
+        const expiresAt = new Date();
+        expiresAt.setHours(expiresAt.getHours() + 24);
+
+        await db.insert(generations).values({
+          id: generationId,
+          status: 'processing',
+          preferences,
+          expiresAt,
+        });
+
+        console.log(`[Inngest] Created generation record ${generationId}`);
+      } catch (error) {
+        // Throw to trigger Inngest retry - this is a critical failure
+        throw new Error(
+          `DB creation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
+      }
+    });
+
+    // Step 2: Generate bundles
+    // This is the long-running operation (can take 5+ minutes)
+    const result = await step.run('generate-bundles', async () => {
+      try {
+        console.log(`[Inngest] Generating bundles for ${generationId}...`);
+        const bundles: TripBundle[] = await generateBundles(preferences);
+        console.log(`[Inngest] ✅ Generated ${bundles.length} bundles`);
+        return { success: true as const, bundles };
+      } catch (error) {
+        console.error(`[Inngest] ❌ Generation failed:`, error);
+        const errorMessage = error instanceof Error ? error.message : 'Generation failed';
+        return { success: false as const, error: errorMessage };
+      }
+    });
+
+    // Step 3: Update generation record with results
+    await step.run('update-generation-record', async () => {
+      if (result.success) {
+        // Success case: Update with bundles
+        try {
+          await db
+            .update(generations)
+            .set({
+              status: 'completed',
+              bundles: result.bundles,
+              updatedAt: new Date(),
+            })
+            .where(eq(generations.id, generationId));
+
+          console.log(`[Inngest] ✅ Updated with ${result.bundles?.length} bundles`);
+        } catch (error) {
+          // Critical failure - we generated bundles but can't save them
+          // Throw to trigger retry
+          throw new Error(
+            `DB update failed after successful generation: ${error instanceof Error ? error.message : 'Unknown error'}`
+          );
+        }
+      } else {
+        // Failure case: Update with error
+        try {
+          await db
+            .update(generations)
+            .set({
+              status: 'failed',
+              error: result.error,
+              updatedAt: new Date(),
+            })
+            .where(eq(generations.id, generationId));
+
+          console.log(`[Inngest] Updated with error status`);
+        } catch (error) {
+          // Best effort - generation already failed, don't retry forever
+          // Log error but don't throw to avoid infinite retries
+          console.error(`[Inngest] Failed to update with error status:`, error);
+          console.error(`[Inngest] Original generation error: ${result.error}`);
+        }
+      }
+    });
+
+    return { generationId, success: result.success };
+  }
+);
+```
+
+**Key Error Handling Strategies:**
+
+1. **DB Creation Failure:**
+   - Throws error → Inngest retries entire function
+   - No orphaned UUID without DB record
+
+2. **Generation Failure:**
+   - Caught and returned as `{ success: false, error }`
+   - DB updated with failed status
+   - Worker completes successfully (no retry)
+
+3. **DB Update Failure (Success Case):**
+   - Throws error → Inngest retries
+   - Critical because bundles were successfully generated
+
+4. **DB Update Failure (Failure Case):**
+   - Logs but doesn't throw
+   - Prevents infinite retries when generation already failed
+   - Client sees 404 (acceptable edge case)
+
+---
+
+### 4. GET Endpoint (`src/app/api/generations/[id]/route.ts`)
 
 **Purpose:** Return generation status and bundles from database
 
@@ -336,7 +524,7 @@ export async function GET(request: NextRequest, { params }) {
 
 ---
 
-### 4. Client Polling (`src/app/loading_bundles/page.tsx`)
+### 5. Client Polling (`src/app/loading_bundles/page.tsx`)
 
 **Flow:**
 1. On mount: Check localStorage for existing generation ID
@@ -350,7 +538,8 @@ export async function GET(request: NextRequest, { params }) {
 - If client refreshes: resume polling with stored generation ID
 - If mobile sleeps: resume polling on wake
 - Polls instantly on resume, then every 25s
-- No loss of progress: server continues independently
+- No loss of progress: worker continues independently on Inngest
+- First poll may return 404 (worker creating DB record) - retries until found
 
 ```typescript
 const POLL_INTERVAL_MS = 25000; // 25 seconds
@@ -523,41 +712,58 @@ CREATE INDEX idx_generations_expires_at ON generations(expires_at);
 
 ## Key Design Decisions
 
-### 1. Why Synchronous Mode (`background: false`)?
+### 1. Why Inngest Workers Instead of Vercel Functions?
 
-**v2.0 Problem:** Background mode required tracking response IDs, polling OpenAI, extracting summaries
+**v3.0 Problem:** `waitUntil()` only works with Edge Runtime, not Node.js runtime
 
-**v3.0 Solution:** Synchronous mode - just wait for OpenAI to complete
+**v4.0 Solution:** Inngest workers run on separate infrastructure
 
 **Benefits:**
-- Much simpler code (~60% less in generation service)
-- No OpenAI polling needed
-- No response ID tracking
-- Linear execution flow
-- Easier debugging
+- No Vercel timeout limits (workers can run 1+ hour)
+- Works with Node.js runtime (required for some dependencies)
+- Automatic retries for transient failures
+- Better monitoring and observability via Inngest dashboard
+- Step-based execution for granular control
+- Cleaner separation of concerns
 
-**Trade-off:** Can't get reasoning summaries in real-time
-- **Acceptable:** Generic loading messages work fine
+**Trade-off:** Additional service dependency (Inngest)
+- **Acceptable:** Inngest has generous free tier, simpler than managing own queue
 
 ---
 
-### 2. Why Fire-and-Forget in POST Endpoint?
+### 2. Why Worker Creates DB Record (Not POST Endpoint)?
 
-**Design:** POST creates DB record, starts generation, returns immediately
+**Design:** Worker owns entire lifecycle from DB creation to completion
 
-**Why not await?**
+**Benefits:**
+- **Atomic operations:** If worker fails before DB creation, no orphaned records
+- **No cleanup needed:** UUID without DB record doesn't exist
+- **Consistent state:** Worker manages all DB mutations
+- **Proper retries:** Inngest retries include DB creation
+
+**Trade-off:** Client first poll may get 404
+- **Acceptable:** Client retries, worker creates record within seconds
+
+---
+
+### 3. Why Not await in POST Endpoint?
+
+**Design:** POST sends event to Inngest, returns immediately
+
+**Why not await worker completion?**
 - Client needs immediate response (< 1s)
-- Generation takes 2-5 minutes
-- Database persistence ensures no data loss
+- Worker takes 2-5 minutes
+- Vercel would timeout waiting for worker
+- No benefit to blocking client request
 
 **Benefits:**
 - Fast POST response
-- Generation continues independently
+- Worker runs independently
 - Client can refresh without losing progress
 
 ---
 
-### 3. Why 25-Second Polling Interval?
+### 4. Why 25-Second Polling Interval?
 
 **Considerations:**
 - Too fast (< 10s): excessive database queries
@@ -574,7 +780,7 @@ CREATE INDEX idx_generations_expires_at ON generations(expires_at);
 
 ---
 
-### 4. Why Remove Reasoning Summaries?
+### 5. Why Remove Reasoning Summaries?
 
 **v2.0:** Displayed real-time AI reasoning to user
 
@@ -592,7 +798,7 @@ CREATE INDEX idx_generations_expires_at ON generations(expires_at);
 
 ---
 
-### 5. Why Store Bundles in Database?
+### 6. Why Store Bundles in Database?
 
 **Alternative:** Generate bundles on every request
 
@@ -715,25 +921,42 @@ CREATE INDEX idx_generations_expires_at ON generations(expires_at);
 
 ## Version History
 
-### v3.0 - Synchronous Mode with Client Polling (Current)
+### v4.0 - Inngest Worker with Client Polling (Current)
+**Date:** 2025-10-23
+**Changes:**
+- Migrated from `waitUntil()` to Inngest workers
+- Worker manages all DB operations (create and update)
+- POST endpoint only generates UUID and sends event
+- Node.js runtime (no Edge Runtime requirement)
+- Comprehensive error handling with retry logic
+- Step-based worker execution
+
+**Benefits:**
+- No Vercel timeout issues (worker runs on Inngest)
+- Atomic DB operations (worker owns lifecycle)
+- Automatic retries for transient failures
+- Better observability via Inngest dashboard
+- Works with Node.js runtime
+
+**Trade-offs:**
+- Additional service dependency (Inngest)
+- Client first poll may get 404 (worker creating record)
+- Slightly more complex setup (webhook registration)
+
+### v3.0 - Synchronous Mode with waitUntil (Deprecated)
 **Date:** 2025-10-21
 **Changes:**
 - Switched to `background: false` for OpenAI (synchronous)
+- Fire-and-forget with `waitUntil()` in POST endpoint
 - Removed reasoning summaries
 - Simplified GET endpoint to pure DB read
-- Fire-and-forget pattern in POST endpoint
-- 25-second polling interval (vs 5s in v2.0)
-- ~60% less code than v2.0
-- Instant poll on resume
 
-**Benefits:**
-- Much simpler codebase
-- Easier to debug and maintain
-- Still fully resilient to disconnects
+**Issues:**
+- `waitUntil()` only works with Edge Runtime, not Node.js
+- Some dependencies incompatible with Edge Runtime
+- Still subject to Vercel timeout limits
 
-**Trade-offs:**
-- No real-time AI reasoning summaries
-- Generic loading messages instead
+**Replaced by:** v4.0
 
 ### v2.0 - Background Mode with Client Polling (Deprecated)
 **Date:** 2025-10-21
@@ -762,28 +985,81 @@ CREATE INDEX idx_generations_expires_at ON generations(expires_at);
 
 ---
 
+## Setup & Configuration
+
+### Environment Variables
+
+Required environment variables for Inngest integration:
+
+```bash
+# OpenAI API
+OPENAI_API_KEY=sk-...
+
+# Database
+SPECIAL_TRIPS_STORAGE_POSTGRES_URL=postgres://...
+
+# Inngest (get from https://app.inngest.com/)
+INNGEST_EVENT_KEY=...        # For sending events from API routes
+INNGEST_SIGNING_KEY=...      # For authenticating webhook requests
+```
+
+### Inngest Setup
+
+1. **Create Inngest Account:** Sign up at https://app.inngest.com
+2. **Create App:** Create a new app in Inngest dashboard
+3. **Get API Keys:**
+   - Event Key: Used by your API to send events
+   - Signing Key: Used to authenticate Inngest webhook calls
+4. **Add to Vercel:** Add both keys as environment variables in Vercel
+5. **Deploy:** Deploy your app to Vercel
+6. **Sync Webhook:** In Inngest dashboard, sync your webhook URL:
+   - URL: `https://your-domain.vercel.app/api/inngest`
+   - Inngest will auto-discover the `generate-trip-bundles` function
+
+### Monitoring
+
+**Inngest Dashboard:**
+- View function runs and their status
+- See event history
+- Monitor errors and retries
+- Check execution time and costs
+
+**Vercel Logs:**
+- POST endpoint: Event send confirmation
+- GET endpoint: Polling requests
+- Worker logs appear in Inngest dashboard (not Vercel)
+
+---
+
 ## Questions & Answers
 
-**Q: What happens if the server crashes mid-generation?**
-A: OpenAI continues processing in background. When server restarts, client polls GET endpoint, which retrieves status from OpenAI and extracts bundles.
+**Q: What happens if Vercel crashes mid-generation?**
+A: Worker runs on Inngest infrastructure, not Vercel. Generation continues unaffected.
 
 **Q: What if client never polls after generation completes?**
-A: Bundles remain in OpenAI's storage (with `store: true`) for retrieval. Database record expires after 24 hours.
+A: Bundles remain in database. Record expires after 24 hours and is cleaned up.
 
 **Q: Can multiple clients poll the same generation ID?**
-A: Yes. First client to poll after completion triggers extraction. Subsequent polls get cached result from database.
+A: Yes. All clients get the same result from database. No duplicate work is done.
 
 **Q: What if OpenAI function call fails?**
-A: Error caught in `pollGenerationUntilComplete()`, database updated with status `'failed'`, error message returned to client.
+A: Error caught in worker's `generate-bundles` step, database updated with status `'failed'`, error message returned to client.
 
-**Q: How long does OpenAI store responses?**
-A: TBD - need to verify OpenAI's retention policy for stored responses.
+**Q: What happens if Inngest event send fails?**
+A: POST endpoint catches the error and returns 500 to client. No DB record is created.
+
+**Q: What if worker fails during DB creation?**
+A: Inngest retries entire function (up to 3 times). If all retries fail, client sees 404 when polling.
+
+**Q: What if worker succeeds but DB update fails?**
+A: Worker throws error to trigger Inngest retry. Critical to save successfully generated bundles.
 
 ---
 
 ## References
 
 - [OpenAI Responses API Documentation](https://platform.openai.com/docs/api-reference/responses)
+- [Inngest Documentation](https://www.inngest.com/docs)
 - [Vercel Serverless Functions](https://vercel.com/docs/functions)
 - [Supabase Postgres](https://supabase.com/docs/guides/database)
 - [Drizzle ORM](https://orm.drizzle.team/)

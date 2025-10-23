@@ -15,6 +15,7 @@ interface PreferencesContextType {
   updateOtherPreferences: (prefs: string) => void;
   setBundles: (bundles: TripBundle[]) => void;
   resetPreferences: () => void;
+  disconnectSpotify: () => void;
 }
 
 const defaultPreferences: UserPreferences = {
@@ -109,6 +110,14 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("generatedBundles");
   };
 
+  const disconnectSpotify = () => {
+    setPreferences((prev) => ({
+      ...prev,
+      spotifyMusicProfile: undefined,
+      musicProfile: "",
+    }));
+  };
+
   return (
     <PreferencesContext.Provider
       value={{
@@ -122,6 +131,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
         updateOtherPreferences,
         setBundles,
         resetPreferences,
+        disconnectSpotify,
       }}
     >
       {children}

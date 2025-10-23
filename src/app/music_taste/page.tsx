@@ -13,11 +13,12 @@ import ClearDataButton from "@/components/ui/ClearDataButton";
 function MusicTasteContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { preferences, updateMusicProfile } = usePreferences();
+  const { preferences, updateMusicProfile, disconnectSpotify } = usePreferences();
   const [musicProfile, setMusicProfile] = useState(preferences.musicProfile || "");
 
   const hasSpotifyProfile = !!preferences.spotifyMusicProfile;
   const spotifyConnected = searchParams.get("spotify") === "connected";
+  const spotifyError = searchParams.get("error");
 
   useEffect(() => {
     // Update local state if Spotify profile was just connected
@@ -32,6 +33,11 @@ function MusicTasteContent() {
   };
 
   const handleConnectSpotify = () => {
+    window.location.href = "/api/auth/spotify/authorize";
+  };
+
+  const handleReconnectSpotify = () => {
+    disconnectSpotify();
     window.location.href = "/api/auth/spotify/authorize";
   };
 
@@ -95,6 +101,32 @@ function MusicTasteContent() {
 
       {/* Content */}
       <div className="flex-1 flex flex-col max-w-md">
+        {/* Error Banner */}
+        {spotifyError && (
+          <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-800 mb-2 font-medium">
+              {spotifyError === "profile_fetch_failed"
+                ? "Spotify Connection Failed"
+                : spotifyError === "access_denied"
+                ? "Spotify Access Denied"
+                : "Something went wrong"}
+            </p>
+            <p className="text-sm text-red-700 mb-3">
+              {spotifyError === "profile_fetch_failed"
+                ? "We couldn't access your Spotify data. This usually happens when you deny permissions during authorization. Please try connecting again and make sure to allow all requested permissions."
+                : spotifyError === "access_denied"
+                ? "You denied access to Spotify. To use this feature, you'll need to allow the requested permissions."
+                : "An error occurred while connecting to Spotify. Please try again."}
+            </p>
+            <button
+              onClick={handleReconnectSpotify}
+              className="text-sm text-red-800 hover:text-red-900 font-medium underline"
+            >
+              Try connecting again
+            </button>
+          </div>
+        )}
+
         {hasSpotifyProfile ? (
           // Spotify connected view
           <>

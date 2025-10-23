@@ -118,15 +118,10 @@ export async function generateSpotifyMusicProfile(
 }> {
   const baseUrl = "https://api.spotify.com/v1";
 
-  // 1. Fetch all data in parallel
-  const [topArtists, followedArtists, topTracks, savedTracks] = await Promise.all([
+  // 1. Fetch required data in parallel
+  const [topArtists, topTracks, savedTracks] = await Promise.all([
     fetchPaginated<SpotifyArtist>(
       `${baseUrl}/me/top/artists?time_range=long_term&limit=50`,
-      accessToken,
-      500
-    ),
-    fetchPaginated<SpotifyArtist>(
-      `${baseUrl}/me/following?type=artist&limit=50`,
       accessToken,
       500
     ),
@@ -141,6 +136,23 @@ export async function generateSpotifyMusicProfile(
       500
     ),
   ]);
+
+  // Fetch followed artists separately with graceful degradation
+  // This endpoint returns 403 for users with private following lists
+  let followedArtists: SpotifyArtist[] = [];
+  try {
+    followedArtists = await fetchPaginated<SpotifyArtist>(
+      `${baseUrl}/me/following?type=artist&limit=50`,
+      accessToken,
+      500
+    );
+  } catch (error) {
+    console.warn(
+      "Could not fetch followed artists (likely due to privacy settings):",
+      error instanceof Error ? error.message : error
+    );
+    // Continue with empty array - profile will be generated without followed artists data
+  }
 
 
   // 2. Build artist data map

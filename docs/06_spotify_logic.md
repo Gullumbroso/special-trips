@@ -2,20 +2,22 @@
 
 ### Inputs (Spotify API calls)
 
-1. **Top Artists**
-    
+1. **Top Artists** *(Required)*
+
     `GET /me/top/artists?time_range=long_term&limit=50` (page up to 500)
-    
-2. **Followed Artists**
-    
+
+2. **Followed Artists** *(Optional - Graceful Degradation)*
+
     `GET /me/following?type=artist&limit=50` (page up to 500)
-    
-3. **Top Tracks**
-    
+
+    **Note:** This endpoint may return `403 Forbidden` for users with private following lists, even with the `user-follow-read` scope granted. If this call fails, profile generation continues with an empty followed artists list, and users will not receive the follow bonus in artist ranking.
+
+3. **Top Tracks** *(Required)*
+
     `GET /me/top/tracks?time_range=long_term&limit=50` (page up to 500)
-    
-4. **Saved Tracks (Liked Songs)**
-    
+
+4. **Saved Tracks (Liked Songs)** *(Required)*
+
     `GET /me/tracks?limit=50` (page up to 500)
     
 

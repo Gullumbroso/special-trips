@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import Logo from "@/components/ui/Logo";
+import ClearDataButton from "@/components/ui/ClearDataButton";
 
 export default function WelcomePage() {
   // Clear session ID when starting fresh
@@ -13,9 +14,12 @@ export default function WelcomePage() {
 
   return (
     <div className="min-h-screen flex flex-col px-6 pt-3">
-      {/* Logo */}
-      <div className="mb-20 -ml-2">
-        <Logo size="md" />
+      {/* Header with Logo and Clear Data Button */}
+      <div className="flex justify-between items-center mb-20">
+        <div className="-ml-2">
+          <Logo size="md" />
+        </div>
+        <ClearDataButton />
       </div>
 
       {/* Main Content */}

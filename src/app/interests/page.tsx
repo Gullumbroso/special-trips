@@ -9,6 +9,7 @@ import { INTEREST_OPTIONS } from "@/lib/constants";
 import { InterestType } from "@/lib/types";
 import Link from "next/link";
 import Logo from "@/components/ui/Logo";
+import ClearDataButton from "@/components/ui/ClearDataButton";
 
 export default function InterestsPage() {
   const router = useRouter();
@@ -39,9 +40,12 @@ export default function InterestsPage() {
 
   return (
     <div className="min-h-screen flex flex-col px-6 pt-3 pb-8">
-      {/* Logo */}
-      <div className="mb-12 -ml-2">
-        <Logo size="md" />
+      {/* Header with Logo and Clear Data Button */}
+      <div className="flex justify-between items-center mb-12">
+        <div className="-ml-2">
+          <Logo size="md" />
+        </div>
+        <ClearDataButton />
       </div>
 
       {/* Content */}

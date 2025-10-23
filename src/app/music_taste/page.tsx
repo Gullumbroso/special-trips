@@ -8,6 +8,7 @@ import { usePreferences } from "@/lib/context/PreferencesContext";
 import Link from "next/link";
 import InfiniteCarousel from "@/components/spotify/InfiniteCarousel";
 import Logo from "@/components/ui/Logo";
+import ClearDataButton from "@/components/ui/ClearDataButton";
 
 function MusicTasteContent() {
   const router = useRouter();
@@ -84,9 +85,12 @@ function MusicTasteContent() {
 
   return (
     <div className="min-h-screen flex flex-col px-6 pt-3 pb-8">
-      {/* Logo */}
-      <div className="mb-12 -ml-2">
-        <Logo size="md" />
+      {/* Header with Logo and Clear Data Button */}
+      <div className="flex justify-between items-center mb-12">
+        <div className="-ml-2">
+          <Logo size="md" />
+        </div>
+        <ClearDataButton />
       </div>
 
       {/* Content */}

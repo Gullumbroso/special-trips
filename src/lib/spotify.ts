@@ -66,7 +66,9 @@ async function fetchPaginated<T>(
     });
 
     if (!response.ok) {
-      throw new Error(`Spotify API error: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Spotify API error: ${response.status} ${response.statusText} - URL: ${url}`
+      );
     }
 
     const data = await response.json();
@@ -118,27 +120,51 @@ export async function generateSpotifyMusicProfile(
 }> {
   const baseUrl = "https://api.spotify.com/v1";
 
-  // 1. Fetch required data in parallel
-  const [topArtists, topTracks, savedTracks] = await Promise.all([
-    fetchPaginated<SpotifyArtist>(
+  // 1. Fetch data with graceful degradation for each endpoint
+  // Each endpoint may fail for different reasons (privacy settings, account restrictions, etc.)
+
+  let topArtists: SpotifyArtist[] = [];
+  try {
+    topArtists = await fetchPaginated<SpotifyArtist>(
       `${baseUrl}/me/top/artists?time_range=long_term&limit=50`,
       accessToken,
       500
-    ),
-    fetchPaginated<SpotifyTrack>(
+    );
+  } catch (error) {
+    console.error(
+      "Failed to fetch top artists:",
+      error instanceof Error ? error.message : error
+    );
+  }
+
+  let topTracks: SpotifyTrack[] = [];
+  try {
+    topTracks = await fetchPaginated<SpotifyTrack>(
       `${baseUrl}/me/top/tracks?time_range=long_term&limit=50`,
       accessToken,
       500
-    ),
-    fetchPaginated<{ track: SpotifyTrack }>(
+    );
+  } catch (error) {
+    console.warn(
+      "Could not fetch top tracks:",
+      error instanceof Error ? error.message : error
+    );
+  }
+
+  let savedTracks: { track: SpotifyTrack }[] = [];
+  try {
+    savedTracks = await fetchPaginated<{ track: SpotifyTrack }>(
       `${baseUrl}/me/tracks?limit=50`,
       accessToken,
       500
-    ),
-  ]);
+    );
+  } catch (error) {
+    console.warn(
+      "Could not fetch saved tracks:",
+      error instanceof Error ? error.message : error
+    );
+  }
 
-  // Fetch followed artists separately with graceful degradation
-  // This endpoint returns 403 for users with private following lists
   let followedArtists: SpotifyArtist[] = [];
   try {
     followedArtists = await fetchPaginated<SpotifyArtist>(
@@ -151,7 +177,14 @@ export async function generateSpotifyMusicProfile(
       "Could not fetch followed artists (likely due to privacy settings):",
       error instanceof Error ? error.message : error
     );
-    // Continue with empty array - profile will be generated without followed artists data
+  }
+
+  // Ensure we have at least some data to generate a profile
+  if (topArtists.length === 0 && topTracks.length === 0 && savedTracks.length === 0) {
+    throw new Error(
+      "Unable to generate music profile: No data available from Spotify. " +
+      "This may be due to account restrictions, privacy settings, or insufficient listening history."
+    );
   }
 
 

@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import { UserPreferences, TripBundle } from '@/lib/types';
 import { INTEREST_LABELS } from '@/lib/constants';
 import { fetchEventImages } from '@/lib/opengraph';
+import { searchTicketmasterEvents } from '@/lib/ticketmaster';
 import { getBundleImageUrl } from '@/lib/utils';
 
 const openai = new OpenAI({
@@ -154,6 +155,10 @@ async function executeFunctionCalls(
       const args = JSON.parse(toolCall.arguments);
       const images = await fetchEventImages(args.url);
       result = { images, url: args.url };
+    } else if (toolCall.name === 'ticketmaster_event_search') {
+      const args = JSON.parse(toolCall.arguments);
+      const events = await searchTicketmasterEvents(args);
+      result = events;
     } else {
       console.error(`[Generation Service] Unknown function: ${toolCall.name}`);
       result = { error: `Unknown function: ${toolCall.name}` };

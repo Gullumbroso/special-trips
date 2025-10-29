@@ -31,7 +31,7 @@ export default function TripTimeframePage() {
 
       {/* Content */}
       <div className="flex-1 flex flex-col max-w-md">
-        <h1 className="font-serif text-[32px] font-semibold mb-8 leading-tight">
+        <h1 className="mb-8 leading-tight">
           When are you planning to travel?
         </h1>
 

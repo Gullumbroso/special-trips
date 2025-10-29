@@ -54,7 +54,7 @@ export default function BundleCard({ bundle, index }: BundleCardProps) {
       <div className="mt-4">
         {/* Title */}
         <Link href={`/bundles/${index}`}>
-          <h2 className="font-serif text-2xl font-semibold mb-4 leading-tight">
+          <h2 className="mb-4 leading-tight">
             {bundle.title}
           </h2>
         </Link>
@@ -65,14 +65,9 @@ export default function BundleCard({ bundle, index }: BundleCardProps) {
           <Chip>{bundle.city}</Chip>
         </div>
 
-        {/* Description */}
-        <p className="text-base text-black mb-6 leading-relaxed">
-          {bundle.description}
-        </p>
-
         {/* Key Events Section */}
         <div className="mb-6">
-          <h3 className="font-serif text-xl font-semibold mb-3">Key Events</h3>
+          <h3 className="mb-3">Key Events</h3>
           <div className="space-y-3">
             {bundle.keyEvents.map((event, idx) => (
               <div key={idx} className="text-sm leading-relaxed">
@@ -85,6 +80,14 @@ export default function BundleCard({ bundle, index }: BundleCardProps) {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* About This Trip Section */}
+        <div className="mb-6">
+          <h3 className="mb-3">About This Trip</h3>
+          <p className="text-base text-black leading-relaxed">
+            {bundle.description}
+          </p>
         </div>
 
         {/* CTA Button - Sticky to bottom */}

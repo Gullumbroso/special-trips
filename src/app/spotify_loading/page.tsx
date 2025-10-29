@@ -75,7 +75,7 @@ export default function SpotifyLoadingPage() {
 
       {/* Content */}
       <div className="max-w-2xl">
-        <h1 className="font-serif text-[32px] font-semibold mb-3 leading-tight">
+        <h1 className="mb-3 leading-tight">
           Connecting Spotify...
         </h1>
 

@@ -17,7 +17,7 @@ export interface Event {
 
 export interface Bundle {
   title: string;
-  description: string;
+  tripDescription: string;
   city: string;
   dateRange: DateRange;
   keyEvents: Event[];   // must be > 0

@@ -8,8 +8,47 @@
  * - Date range
  */
 
+import { getClassifications } from './ticketmasterCache';
+
 const TICKETMASTER_API_KEY = process.env.TICKETMASTER_API_KEY;
 const TICKETMASTER_BASE_URL = "https://app.ticketmaster.com/discovery/v2";
+
+// ============================================================================
+// Rate Limiting
+// ============================================================================
+
+/**
+ * Module-level rate limiter for Ticketmaster API (5 requests per second limit)
+ * Tracks timestamps of recent API calls and throttles when necessary
+ */
+const apiCallTimestamps: number[] = [];
+const MAX_CALLS_PER_SECOND = 5;
+const TIME_WINDOW_MS = 1000;
+
+/**
+ * Rate-limited fetch wrapper for Ticketmaster API
+ * Ensures no more than 5 calls per second (sliding window)
+ */
+export async function rateLimitedFetch(url: string): Promise<Response> {
+  const now = Date.now();
+
+  // Remove timestamps older than 1 second
+  while (apiCallTimestamps.length > 0 && now - apiCallTimestamps[0] > TIME_WINDOW_MS) {
+    apiCallTimestamps.shift();
+  }
+
+  // If we have 5 calls in the last second, wait
+  if (apiCallTimestamps.length >= MAX_CALLS_PER_SECOND) {
+    const oldestCall = apiCallTimestamps[0];
+    const waitTime = TIME_WINDOW_MS - (now - oldestCall) + 10; // +10ms buffer
+    console.log(`⏱️  [TICKETMASTER] Rate limit: waiting ${waitTime}ms before next API call`);
+    await new Promise(resolve => setTimeout(resolve, waitTime));
+  }
+
+  // Make the call and record timestamp
+  apiCallTimestamps.push(Date.now());
+  return fetch(url);
+}
 
 // ============================================================================
 // Type Definitions
@@ -17,10 +56,10 @@ const TICKETMASTER_BASE_URL = "https://app.ticketmaster.com/discovery/v2";
 
 export interface TicketmasterSearchParams {
   countryCode: string;
-  city?: string;
-  segmentName?: string;
-  genreName?: string;
-  entityName?: string;
+  city?: string | string[];
+  segmentName?: string | string[];
+  genreName?: string | string[];
+  entityName?: string | string[];
   startDateTime?: string;
   endDateTime?: string;
 }
@@ -37,6 +76,15 @@ export interface TicketmasterEvent {
 export interface TicketmasterErrorResponse {
   error: string;
   details?: string;
+}
+
+export interface TicketmasterSegment {
+  name: string;
+  genres: string[];
+}
+
+export interface TicketmasterClassificationsList {
+  segments: TicketmasterSegment[];
 }
 
 // Internal API response types
@@ -217,7 +265,7 @@ function extractField<T>(
   }
 }
 
-function buildUrl(path: string, params: Record<string, string | undefined>): string {
+function buildUrl(path: string, params: Record<string, string | string[] | undefined>): string {
   // Remove leading slash from path if present, then append to base URL
   const cleanPath = path.startsWith('/') ? path.slice(1) : path;
   const fullUrl = `${TICKETMASTER_BASE_URL}/${cleanPath}`;
@@ -230,10 +278,19 @@ function buildUrl(path: string, params: Record<string, string | undefined>): str
     console.error('[TICKETMASTER] WARNING: API key is missing!');
   }
 
-  // Add other params
+  // Add other params (supports arrays for multiple values per key)
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined && value !== null && value !== '') {
-      url.searchParams.append(key, value);
+      if (Array.isArray(value)) {
+        // Add each array element as a separate parameter with the same key
+        for (const item of value) {
+          if (item !== undefined && item !== null && item !== '') {
+            url.searchParams.append(key, item);
+          }
+        }
+      } else {
+        url.searchParams.append(key, value);
+      }
     }
   }
 
@@ -247,90 +304,86 @@ function buildUrl(path: string, params: Record<string, string | undefined>): str
 // ============================================================================
 
 interface ClassificationIds {
-  segmentId?: string;
-  genreId?: string;
+  segmentIds: string[];
+  genreIds: string[];
 }
 
 /**
  * Fetches classifications and maps segment/genre names to IDs
- * @param segmentName Optional segment name (e.g., "Music", "Sports")
- * @param genreName Optional genre name (e.g., "Jazz", "Football")
- * @returns Object with segmentId and/or genreId
+ * Supports single or multiple segments/genres
+ * @param segmentName Optional segment name(s) (e.g., "Music", ["Music", "Sports"])
+ * @param genreName Optional genre name(s) (e.g., "Jazz", ["Jazz", "Rock"])
+ * @returns Object with arrays of segmentIds and genreIds
  */
 async function resolveClassifications(
-  segmentName?: string,
-  genreName?: string
+  segmentName?: string | string[],
+  genreName?: string | string[]
 ): Promise<ClassificationIds> {
   const startTime = Date.now();
-  const result: ClassificationIds = {};
+  const result: ClassificationIds = { segmentIds: [], genreIds: [] };
 
   if (!segmentName && !genreName) {
     return result;
   }
 
   try {
-    const url = buildUrl('/classifications.json', { size: '500', locale: 'en' });
-    console.log(`🏷️  [TICKETMASTER] Fetching classifications...`);
+    console.log(`🏷️  [TICKETMASTER] Resolving classifications...`);
 
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      const duration = Date.now() - startTime;
-      const errorBody = await response.text();
-      console.error(`[TICKETMASTER] Classifications API error: ${response.status} ${response.statusText} (${formatDuration(duration)})`);
-      console.error(`[TICKETMASTER] Error response body:`, errorBody);
-      return result;
-    }
-
-    const data: ClassificationsResponse = await response.json();
+    // Use cached classifications instead of direct API fetch
+    const data: ClassificationsResponse = await getClassifications();
     const classifications = data._embedded?.classifications || [];
 
-    // Case-insensitive matching
-    const segmentLower = segmentName?.toLowerCase();
-    const genreLower = genreName?.toLowerCase();
+    // Normalize to arrays
+    const segmentNames = segmentName ? (Array.isArray(segmentName) ? segmentName : [segmentName]) : [];
+    const genreNames = genreName ? (Array.isArray(genreName) ? genreName : [genreName]) : [];
 
-    // Find segment ID first
-    if (segmentLower) {
+    // Find all segment IDs
+    for (const name of segmentNames) {
+      const nameLower = name.toLowerCase();
       for (const classification of classifications) {
-        if (classification.segment?.name?.toLowerCase() === segmentLower) {
-          result.segmentId = classification.segment.id;
+        if (classification.segment?.name?.toLowerCase() === nameLower) {
+          result.segmentIds.push(classification.segment.id);
           break;
         }
       }
     }
 
-    // Find genre ID (scoped by segment if both provided)
-    if (genreLower) {
+    // Find all genre IDs
+    for (const name of genreNames) {
+      const nameLower = name.toLowerCase();
+      let found = false;
+
       for (const classification of classifications) {
-        // If segment was specified, only search in that segment
-        if (segmentLower && result.segmentId) {
-          if (classification.segment?.id === result.segmentId) {
-            // Search through genres in this segment
-            const genres = classification.segment._embedded?.genres || [];
+        // If segments were specified, only search in those segments
+        if (result.segmentIds.length > 0) {
+          if (result.segmentIds.includes(classification.segment?.id || '')) {
+            const genres = classification.segment?._embedded?.genres || [];
             for (const genre of genres) {
-              if (genre.name?.toLowerCase() === genreLower) {
-                result.genreId = genre.id;
+              if (genre.name?.toLowerCase() === nameLower) {
+                result.genreIds.push(genre.id);
+                found = true;
                 break;
               }
             }
-            if (result.genreId) break;
+            if (found) break;
           }
         } else {
           // No segment constraint, search all genres
           const genres = classification.segment?._embedded?.genres || [];
           for (const genre of genres) {
-            if (genre.name?.toLowerCase() === genreLower) {
-              result.genreId = genre.id;
+            if (genre.name?.toLowerCase() === nameLower) {
+              result.genreIds.push(genre.id);
+              found = true;
               break;
             }
           }
-          if (result.genreId) break;
+          if (found) break;
         }
       }
     }
 
     const duration = Date.now() - startTime;
-    console.log(`✅ [TICKETMASTER] Resolved classifications: segmentId=${result.segmentId || 'none'}, genreId=${result.genreId || 'none'} (${formatDuration(duration)})`);
+    console.log(`✅ [TICKETMASTER] Resolved classifications: segmentIds=[${result.segmentIds.join(', ') || 'none'}], genreIds=[${result.genreIds.join(', ') || 'none'}] (${formatDuration(duration)})`);
 
     return result;
   } catch (error) {
@@ -345,50 +398,60 @@ async function resolveClassifications(
 // ============================================================================
 
 /**
- * Looks up an entity (artist, team, venue) and returns its attraction ID
- * @param entityName The entity to search for
- * @returns Attraction ID or undefined if not found
+ * Looks up entities (artists, teams, venues) and returns their attraction IDs
+ * Supports single or multiple entity names
+ * @param entityName The entity name(s) to search for
+ * @returns Array of attraction IDs
  */
-async function resolveEntity(entityName: string): Promise<string | undefined> {
+async function resolveEntity(entityName: string | string[]): Promise<string[]> {
   const startTime = Date.now();
+  const result: string[] = [];
+
+  // Normalize to array
+  const entityNames = Array.isArray(entityName) ? entityName : [entityName];
+
+  console.log(`🎭 [TICKETMASTER] Looking up ${entityNames.length} entity/entities...`);
 
   try {
-    const url = buildUrl('/attractions.json', {
-      keyword: entityName,
-      size: '10',
-      locale: 'en',
-    });
+    // Look up each entity
+    for (const name of entityNames) {
+      const url = buildUrl('/attractions.json', {
+        keyword: name,
+        size: '10',
+        locale: '*',
+      });
 
-    const truncatedName = entityName.length > 40 ? entityName.substring(0, 37) + '...' : entityName;
-    console.log(`🎭 [TICKETMASTER] Looking up entity: "${truncatedName}"`);
+      const truncatedName = name.length > 40 ? name.substring(0, 37) + '...' : name;
 
-    const response = await fetch(url);
+      const response = await rateLimitedFetch(url);
 
-    if (!response.ok) {
-      const duration = Date.now() - startTime;
-      console.error(`[TICKETMASTER] Attractions API error: ${response.status} ${response.statusText} (${formatDuration(duration)})`);
-      return undefined;
+      if (!response.ok) {
+        console.error(`[TICKETMASTER] Attractions API error for "${truncatedName}": ${response.status} ${response.statusText}`);
+        continue; // Skip this entity but continue with others
+      }
+
+      const data: AttractionsResponse = await response.json();
+      const attractions = data._embedded?.attractions || [];
+
+      if (attractions.length === 0) {
+        console.warn(`[TICKETMASTER] No attractions found for "${truncatedName}"`);
+        continue; // Skip this entity but continue with others
+      }
+
+      // Select best match (first result is highest relevance)
+      const bestMatch = attractions[0];
+      console.log(`✅ [TICKETMASTER] Found attraction: "${bestMatch.name}" (ID: ${bestMatch.id})`);
+      result.push(bestMatch.id);
     }
 
-    const data: AttractionsResponse = await response.json();
-    const attractions = data._embedded?.attractions || [];
-
-    if (attractions.length === 0) {
-      const duration = Date.now() - startTime;
-      console.warn(`[TICKETMASTER] No attractions found for "${truncatedName}" (${formatDuration(duration)})`);
-      return undefined;
-    }
-
-    // Select best match (first result is highest relevance)
-    const bestMatch = attractions[0];
     const duration = Date.now() - startTime;
-    console.log(`✅ [TICKETMASTER] Found attraction: "${bestMatch.name}" (ID: ${bestMatch.id}) (${formatDuration(duration)})`);
+    console.log(`✅ [TICKETMASTER] Resolved ${result.length} of ${entityNames.length} entities (${formatDuration(duration)})`);
 
-    return bestMatch.id;
+    return result;
   } catch (error) {
     const duration = Date.now() - startTime;
-    console.error(`[TICKETMASTER] Error looking up entity "${entityName}" (${formatDuration(duration)}):`, error);
-    return undefined;
+    console.error(`[TICKETMASTER] Error looking up entities (${formatDuration(duration)}):`, error);
+    return result;
   }
 }
 
@@ -398,15 +461,16 @@ async function resolveEntity(entityName: string): Promise<string | undefined> {
 
 /**
  * Searches for events with the provided filters
+ * Supports multiple cities, segments, genres, and attractions
  * @param params Search parameters including IDs resolved from previous steps
  * @returns Array of events or error response
  */
 async function searchEvents(
   countryCode: string,
-  city?: string,
-  segmentId?: string,
-  genreId?: string,
-  attractionId?: string,
+  city?: string | string[],
+  segmentIds?: string[],
+  genreIds?: string[],
+  attractionIds?: string[],
   startDateTime?: string,
   endDateTime?: string
 ): Promise<TicketmasterEvent[] | TicketmasterErrorResponse> {
@@ -416,18 +480,22 @@ async function searchEvents(
     const url = buildUrl('/events.json', {
       countryCode,
       city,
-      segmentId,
-      genreId,
-      attractionId,
+      segmentId: segmentIds,
+      genreId: genreIds,
+      attractionId: attractionIds,
       startDateTime,
       endDateTime,
-      size: '100',
-      locale: 'en',
+      size: '200',
+      locale: '*',
     });
 
-    console.log(`🎫 [TICKETMASTER] Searching events with filters: country=${countryCode}, city=${city || 'any'}, segmentId=${segmentId || 'none'}, genreId=${genreId || 'none'}, attractionId=${attractionId || 'none'}`);
+    const cityDisplay = city ? (Array.isArray(city) ? `[${city.join(', ')}]` : city) : 'any';
+    const segmentDisplay = segmentIds && segmentIds.length > 0 ? `[${segmentIds.join(', ')}]` : 'none';
+    const genreDisplay = genreIds && genreIds.length > 0 ? `[${genreIds.join(', ')}]` : 'none';
+    const attractionDisplay = attractionIds && attractionIds.length > 0 ? `[${attractionIds.join(', ')}]` : 'none';
+    console.log(`🎫 [TICKETMASTER] Searching events with filters: country=${countryCode}, city=${cityDisplay}, segmentIds=${segmentDisplay}, genreIds=${genreDisplay}, attractionIds=${attractionDisplay}`);
 
-    const response = await fetch(url);
+    const response = await rateLimitedFetch(url);
 
     if (!response.ok) {
       const duration = Date.now() - startTime;
@@ -537,44 +605,55 @@ export async function searchTicketmasterEvents(
   }
 
   try {
-    let segmentId: string | undefined;
-    let genreId: string | undefined;
-    let attractionId: string | undefined;
+    let segmentIds: string[] = [];
+    let genreIds: string[] = [];
+    let attractionIds: string[] = [];
 
     // Step 1: Resolve classifications (if segment/genre provided)
     if (params.segmentName || params.genreName) {
       const classifications = await resolveClassifications(params.segmentName, params.genreName);
-      segmentId = classifications.segmentId;
-      genreId = classifications.genreId;
+      segmentIds = classifications.segmentIds;
+      genreIds = classifications.genreIds;
 
       // Check if segment/genre was requested but not found
-      if (params.segmentName && !segmentId) {
-        console.warn(`[TICKETMASTER] Segment "${params.segmentName}" not found`);
-        return {
-          error: 'Unknown segment',
-          details: `Segment "${params.segmentName}" not found in Ticketmaster classifications`
-        };
+      if (params.segmentName) {
+        const requestedSegments = Array.isArray(params.segmentName) ? params.segmentName : [params.segmentName];
+        if (requestedSegments.length > segmentIds.length) {
+          console.warn(`[TICKETMASTER] Some segments not found. Requested: ${requestedSegments.join(', ')}, Found: ${segmentIds.length}`);
+          return {
+            error: 'Unknown segment',
+            details: `Some segments not found in Ticketmaster classifications. Requested ${requestedSegments.length}, found ${segmentIds.length}.`
+          };
+        }
       }
 
-      if (params.genreName && !genreId) {
-        console.warn(`[TICKETMASTER] Genre "${params.genreName}" not found`);
-        return {
-          error: 'Unknown genre',
-          details: `Genre "${params.genreName}" not found in Ticketmaster classifications`
-        };
+      if (params.genreName) {
+        const requestedGenres = Array.isArray(params.genreName) ? params.genreName : [params.genreName];
+        if (requestedGenres.length > genreIds.length) {
+          console.warn(`[TICKETMASTER] Some genres not found. Requested: ${requestedGenres.join(', ')}, Found: ${genreIds.length}`);
+          return {
+            error: 'Unknown genre',
+            details: `Some genres not found in Ticketmaster classifications. Requested ${requestedGenres.length}, found ${genreIds.length}.`
+          };
+        }
       }
     }
 
     // Step 2: Resolve entity (if provided)
     if (params.entityName) {
-      attractionId = await resolveEntity(params.entityName);
+      attractionIds = await resolveEntity(params.entityName);
 
-      if (!attractionId) {
-        console.warn(`[TICKETMASTER] Entity "${params.entityName}" not found`);
+      const requestedEntities = Array.isArray(params.entityName) ? params.entityName : [params.entityName];
+      if (attractionIds.length === 0) {
+        console.warn(`[TICKETMASTER] No entities found`);
         return {
           error: 'Unknown entity',
-          details: `Entity "${params.entityName}" not found in Ticketmaster attractions`
+          details: `No entities found in Ticketmaster attractions`
         };
+      }
+      if (attractionIds.length < requestedEntities.length) {
+        console.warn(`[TICKETMASTER] Some entities not found. Requested: ${requestedEntities.length}, Found: ${attractionIds.length}`);
+        // Continue with partial results rather than erroring
       }
     }
 
@@ -582,9 +661,9 @@ export async function searchTicketmasterEvents(
     const result = await searchEvents(
       params.countryCode,
       params.city,
-      segmentId,
-      genreId,
-      attractionId,
+      segmentIds.length > 0 ? segmentIds : undefined,
+      genreIds.length > 0 ? genreIds : undefined,
+      attractionIds.length > 0 ? attractionIds : undefined,
       params.startDateTime,
       params.endDateTime
     );
@@ -604,5 +683,87 @@ export async function searchTicketmasterEvents(
     const totalDuration = Date.now() - totalStartTime;
     console.error(`[TICKETMASTER] Unexpected error (${formatDuration(totalDuration)}):`, error);
     return { error: 'Ticketmaster API unreachable', details: String(error) };
+  }
+}
+
+// ============================================================================
+// Get Available Classifications
+// ============================================================================
+
+/**
+ * Allowed segment IDs to return in classifications (to reduce token usage).
+ * Only the most relevant segments for trip planning are included.
+ */
+const ALLOWED_SEGMENT_IDS = new Set([
+  'KZFzniwnSyZfZ7v7nJ',  // Music
+  'KZFzniwnSyZfZ7v7na',  // Arts & Theatre
+  'KZFzniwnSyZfZ7v7nE',  // Sports
+]);
+
+/**
+ * Returns a filtered list of segments (Music, Arts & Theatre, Sports) and their genres from Ticketmaster.
+ * This helps the model know exactly what segment/genre names to use when searching.
+ *
+ * Only returns the most relevant segments to keep token usage low.
+ * Uses cached classifications data (fast, ~50ms)
+ *
+ * @returns List of segments with their available genres, or error response
+ */
+export async function getTicketmasterClassifications(): Promise<TicketmasterClassificationsList | TicketmasterErrorResponse> {
+  const startTime = Date.now();
+  console.log(`📋 [TICKETMASTER] === GETTING AVAILABLE CLASSIFICATIONS ===`);
+
+  try {
+    // Use cached classifications (fast!)
+    const data: ClassificationsResponse = await getClassifications();
+    const classifications = data._embedded?.classifications || [];
+
+    // Build a map to deduplicate segments (some appear multiple times)
+    // Only include allowed segments to reduce token usage
+    const segmentMap = new Map<string, Set<string>>();
+
+    for (const classification of classifications) {
+      const segmentId = classification.segment?.id;
+      const segmentName = classification.segment?.name;
+
+      // Skip segments not in our allowed list
+      if (!segmentId || !segmentName || !ALLOWED_SEGMENT_IDS.has(segmentId)) {
+        continue;
+      }
+
+      // Initialize segment if not exists
+      if (!segmentMap.has(segmentName)) {
+        segmentMap.set(segmentName, new Set());
+      }
+
+      // Add all genres for this segment
+      const genres = classification.segment?._embedded?.genres || [];
+      for (const genre of genres) {
+        if (genre.name) {
+          segmentMap.get(segmentName)!.add(genre.name);
+        }
+      }
+    }
+
+    // Convert to output format
+    const segments: TicketmasterSegment[] = [];
+    for (const [segmentName, genreSet] of segmentMap.entries()) {
+      segments.push({
+        name: segmentName,
+        genres: Array.from(genreSet).sort() // Sort alphabetically for consistency
+      });
+    }
+
+    // Sort segments alphabetically
+    segments.sort((a, b) => a.name.localeCompare(b.name));
+
+    const duration = Date.now() - startTime;
+    console.log(`✅ [TICKETMASTER] Found ${segments.length} segments (filtered) with ${segments.reduce((sum, s) => sum + s.genres.length, 0)} total genres (${formatDuration(duration)})`);
+
+    return { segments };
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    console.error(`[TICKETMASTER] Error getting classifications (${formatDuration(duration)}):`, error);
+    return { error: 'Failed to get Ticketmaster classifications', details: String(error) };
   }
 }

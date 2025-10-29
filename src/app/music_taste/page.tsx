@@ -130,7 +130,7 @@ function MusicTasteContent() {
         {hasSpotifyProfile ? (
           // Spotify connected view
           <>
-            <h1 className="font-serif text-[32px] font-semibold mb-8 leading-tight">
+            <h1 className="mb-8 leading-tight">
               Your music taste profile is ready.
             </h1>
 
@@ -180,7 +180,7 @@ function MusicTasteContent() {
         ) : (
           // Default view (connect Spotify or manual entry)
           <>
-            <h1 className="font-serif text-[32px] font-semibold mb-4 leading-tight">
+            <h1 className="mb-4 leading-tight">
               What type of music are you into?
             </h1>
 

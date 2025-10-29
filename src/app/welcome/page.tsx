@@ -24,7 +24,7 @@ export default function WelcomePage() {
 
       {/* Main Content */}
       <div className="flex flex-col max-w-md">
-        <h1 className="font-serif text-[32px] font-semibold mb-6 leading-tight">
+        <h1 className="mb-6 leading-tight">
           Hi!
           <br />
           Let&apos;s find you something special

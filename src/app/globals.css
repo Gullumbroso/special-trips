@@ -28,6 +28,44 @@ body {
   font-family: var(--font-inter), system-ui, sans-serif;
 }
 
+/* Base styles for typography according to design system */
+@layer base {
+  h1 {
+    font-family: var(--font-besley), serif;
+    font-size: 2rem; /* 32px */
+    font-weight: 600; /* semi-bold */
+    color: var(--foreground);
+  }
+
+  h2 {
+    font-family: var(--font-besley), serif;
+    font-size: 1.5rem; /* 24px */
+    font-weight: 600; /* semi-bold */
+    color: var(--foreground);
+  }
+
+  h3 {
+    font-family: var(--font-besley), serif;
+    font-size: 1.25rem; /* 20px */
+    font-weight: 600; /* semi-bold */
+    color: var(--foreground);
+  }
+
+  h4 {
+    font-family: var(--font-inter), system-ui, sans-serif;
+    font-size: 1.25rem; /* 20px */
+    font-weight: 400; /* regular */
+    color: var(--foreground);
+  }
+
+  p {
+    font-family: var(--font-inter), system-ui, sans-serif;
+    font-size: 1rem; /* 16px */
+    font-weight: 400; /* regular */
+    color: var(--foreground);
+  }
+}
+
 @keyframes fade-in-slide {
   from {
     opacity: 0;

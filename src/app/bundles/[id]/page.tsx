@@ -80,7 +80,7 @@ export default function BundleDetailsPage() {
       <div className="px-4 py-8">
         {/* Header Info */}
         <div className="mb-6">
-          <h1 className="font-serif text-[32px] font-semibold mb-4 leading-tight">
+          <h1 className="mb-4 leading-tight">
             {bundle.title}
           </h1>
 
@@ -120,7 +120,7 @@ export default function BundleDetailsPage() {
 
         {/* Key Events */}
         <div className="mb-8">
-          <h4 className="text-xl font-medium mb-4 sticky top-[56px] bg-background pb-2 z-[5]">Key Events</h4>
+          <h4 className="mb-4 sticky top-[56px] bg-background pb-2 z-[5]">Key Events</h4>
           {bundle.keyEvents.map((event, idx) => (
             <EventCard key={idx} event={event} />
           ))}
@@ -129,7 +129,7 @@ export default function BundleDetailsPage() {
         {/* Minor Events */}
         {bundle.minorEvents.length > 0 && (
           <div>
-            <h4 className="text-xl font-medium mb-4 sticky top-[56px] bg-background pb-2 z-[5]">
+            <h4 className="mb-4 sticky top-[56px] bg-background pb-2 z-[5]">
               Other Interesting Events
             </h4>
             {bundle.minorEvents.map((event, idx) => (

@@ -60,7 +60,7 @@ export default function Dialog({
 
       {/* Dialog */}
       <div className="relative bg-white rounded-lg p-6 max-w-sm w-full shadow-lg">
-        <h2 className="font-serif text-2xl font-bold mb-2">
+        <h2 className="mb-2">
           {title}
         </h2>
 

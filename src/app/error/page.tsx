@@ -27,7 +27,7 @@ function ErrorContent() {
           </div>
         </div>
 
-        <h1 className="font-serif text-3xl font-bold mb-4">
+        <h1 className="mb-4">
           Oops! Something went wrong
         </h1>
 

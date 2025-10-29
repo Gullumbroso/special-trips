@@ -24,7 +24,7 @@ export default function EmptyBundlesState() {
           </div>
         </div>
 
-        <h1 className="font-serif text-3xl font-bold mb-4">
+        <h1 className="mb-4">
           No trips yet
         </h1>
 

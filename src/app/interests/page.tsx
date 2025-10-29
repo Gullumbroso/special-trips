@@ -50,7 +50,7 @@ export default function InterestsPage() {
 
       {/* Content */}
       <div className="flex-1 flex flex-col max-w-md">
-        <h1 className="font-serif text-[32px] font-semibold mb-4 leading-tight">
+        <h1 className="mb-4 leading-tight">
           What type of events you like?
         </h1>
 

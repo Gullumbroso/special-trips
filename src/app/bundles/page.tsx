@@ -82,6 +82,27 @@ export default function BundlesPage() {
     loadBundles();
   }, [generatedBundles, isHydrated]);
 
+  // Generate summary message
+  const getSummaryMessage = () => {
+    if (bundles.length === 0) return null;
+
+    const cities = bundles.map(b => b.city);
+    const uniqueCities = Array.from(new Set(cities));
+
+    let cityText = "";
+    if (uniqueCities.length === 1) {
+      cityText = uniqueCities[0];
+    } else if (uniqueCities.length === 2) {
+      cityText = `${uniqueCities[0]} and ${uniqueCities[1]}`;
+    } else {
+      // For 3+ cities: "city1, city2, and city3"
+      cityText = uniqueCities.slice(0, -1).join(", ") + ", and " + uniqueCities[uniqueCities.length - 1];
+    }
+
+    const tripWord = bundles.length === 1 ? "trip" : "trips";
+    return `Found ${bundles.length} interesting ${tripWord}:\nin ${cityText}.`;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -99,6 +120,15 @@ export default function BundlesPage() {
 
       {/* Bundles Feed */}
       <div className="px-4 py-8">
+        {/* Summary Message */}
+        {bundles.length > 0 && (
+          <div className="mb-[42px]">
+            <h4 className="whitespace-pre-line">
+              {getSummaryMessage()}
+            </h4>
+          </div>
+        )}
+
         {bundles.map((bundle, index) => (
           <BundleCard key={index} bundle={bundle} index={index} />
         ))}

@@ -234,7 +234,7 @@ export default function LoadingBundlesPage() {
 
       {/* Main content */}
       <div className="max-w-2xl">
-        <h1 className="font-serif text-[32px] font-semibold mb-3 leading-tight">
+        <h1 className="mb-3 leading-tight">
           {isResuming ? "Still on it..." : "Working on it..."}
         </h1>
 

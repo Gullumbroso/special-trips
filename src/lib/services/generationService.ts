@@ -2,7 +2,7 @@ import OpenAI from 'openai';
 import { UserPreferences, TripBundle } from '@/lib/types';
 import { INTEREST_LABELS } from '@/lib/constants';
 import { fetchEventImages } from '@/lib/opengraph';
-import { searchTicketmasterEvents } from '@/lib/ticketmaster';
+import { searchTicketmasterEvents, getTicketmasterClassifications } from '@/lib/ticketmaster';
 import { getBundleImageUrl } from '@/lib/utils';
 
 const openai = new OpenAI({
@@ -127,28 +127,25 @@ function extractBundles(allOutputItems: Array<any>): TripBundle[] | null {
 
 /**
  * Executes function calls and returns updated conversation input
+ *
+ * With previous_response_id approach:
+ * - Only function_call_output items are added to input
+ * - OpenAI automatically includes relevant reasoning items via previous_response_id
  */
 async function executeFunctionCalls(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  functionCallItems: Array<any>,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  allOutputItems: Array<any>,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  conversationInput: Array<any>
+  functionCallItems: Array<any>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<Array<any>> {
-  // Build new input with ALL output items
-  const newConversationInput = [...conversationInput];
-
-  // Add ALL output items from response (required for reasoning models)
-  for (const item of allOutputItems) {
-    if (item && typeof item === 'object') {
-      newConversationInput.push(item);
-    }
-  }
+  // Only add function_call_output items
+  // OpenAI will handle reasoning items automatically via previous_response_id
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const functionOutputs: Array<any> = [];
 
   // Execute functions and add outputs
   for (const toolCall of functionCallItems) {
+    console.log(`🔧 [Generation Service] Model called function: ${toolCall.name}`);
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let result: Record<string, any>;
     if (toolCall.name === 'fetch_event_images') {
@@ -159,19 +156,25 @@ async function executeFunctionCalls(
       const args = JSON.parse(toolCall.arguments);
       const events = await searchTicketmasterEvents(args);
       result = events;
+    } else if (toolCall.name === 'get_ticketmaster_classifications') {
+      console.log(`📋 [Generation Service] Model is checking available Ticketmaster categories...`);
+      const classifications = await getTicketmasterClassifications();
+      result = classifications;
     } else {
       console.error(`[Generation Service] Unknown function: ${toolCall.name}`);
       result = { error: `Unknown function: ${toolCall.name}` };
     }
 
-    newConversationInput.push({
+    functionOutputs.push({
       type: 'function_call_output',
       call_id: toolCall.call_id,
       output: JSON.stringify(result),
     });
   }
 
-  return newConversationInput;
+  console.log(`✅ Executed ${functionOutputs.length} function call(s), returning outputs only (reasoning handled by previous_response_id)`);
+
+  return functionOutputs;
 }
 
 /**
@@ -189,7 +192,8 @@ export async function generateBundles(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let currentInput: Array<any> = [];
   let iterationCount = 0;
-  const MAX_ITERATIONS = 10; // Safety limit for function call loops
+  let previousResponseId: string | undefined;
+  const MAX_ITERATIONS = 100; // Safety limit for function call loops
 
   while (iterationCount < MAX_ITERATIONS) {
     iterationCount++;
@@ -199,6 +203,11 @@ export async function generateBundles(
     const createParams: Record<string, any> = {
       background: false,  // Synchronous execution - waits for completion
       stream: false,
+      reasoning: {
+    effort: "medium",
+    summary: "auto"
+  },
+      store: true,  // Store response for reasoning continuity
       prompt: { id: PROMPT_ID, variables: promptVariables },  // Always include prompt for context (includes model & reasoning config)
     };
 
@@ -206,7 +215,11 @@ export async function generateBundles(
     if (iterationCount === 1) {
       createParams.input = [];
     } else {
-      // Subsequent iterations: use input with all conversation history
+      // Subsequent iterations: use previous_response_id for reasoning continuity
+      if (previousResponseId) {
+        createParams.previous_response_id = previousResponseId;
+      }
+      // Also include conversation input with function outputs
       createParams.input = currentInput;
     }
 
@@ -214,8 +227,10 @@ export async function generateBundles(
     console.log(`📦 Request params:`, JSON.stringify({
       background: createParams.background,
       stream: createParams.stream,
+      store: createParams.store,
       promptId: createParams.prompt.id,
       inputLength: createParams.input?.length || 0,
+      previousResponseId: previousResponseId || 'none',
     }));
 
     const callStartTime = Date.now();
@@ -223,6 +238,12 @@ export async function generateBundles(
     const callDuration = Date.now() - callStartTime;
 
     console.log(`✅ OpenAI call completed in ${(callDuration / 1000).toFixed(2)}s - Status: ${response.status}`);
+
+    // Store response ID for reasoning continuity in subsequent calls
+    if (response.id) {
+      previousResponseId = response.id;
+      console.log(`📝 Stored response ID: ${previousResponseId}`);
+    }
 
     // Handle failure
     if (response.status === 'failed') {
@@ -244,12 +265,9 @@ export async function generateBundles(
       if (functionCallItems.length > 0) {
         console.log(`🔧 Executing ${functionCallItems.length} function call(s)...`);
 
-        // Execute function calls and prepare next input
-        currentInput = await executeFunctionCalls(
-          functionCallItems,
-          allOutputItems,
-          currentInput
-        );
+        // Execute function calls and get function outputs
+        // Only function_call_output items are needed; reasoning items are handled by previous_response_id
+        currentInput = await executeFunctionCalls(functionCallItems);
 
         // Continue loop to create follow-up response
         continue;

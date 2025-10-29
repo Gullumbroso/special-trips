@@ -18,7 +18,7 @@ export default function EventCard({ event, isMinor = false }: EventCardProps) {
   return (
     <div className={`mb-12 ${isMinor ? "opacity-90" : ""}`}>
       {/* Event Title */}
-      <h3 className="font-serif text-xl font-semibold mb-4">
+      <h3 className="mb-4">
         {INTEREST_EMOJIS[event.interestType]} {event.title}
       </h3>
 

@@ -12,7 +12,7 @@ export default function ClearDataButton() {
 
   const handleClearData = () => {
     resetPreferences();
-    localStorage.removeItem('special-trips-generation-id');
+    localStorage.clear();
     setShowDialog(false);
     router.push("/welcome");
   };

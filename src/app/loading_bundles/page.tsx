@@ -37,6 +37,9 @@ export default function LoadingBundlesPage() {
   const [isResuming, setIsResuming] = useState(false);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [loadingMessage, setLoadingMessage] = useState(LOADING_MESSAGES[0]);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const consecutiveFailuresRef = useRef(0);
+  const MAX_CONSECUTIVE_FAILURES = 3;
 
   useEffect(() => {
     // Wait for PreferencesContext to hydrate from localStorage
@@ -149,12 +152,28 @@ export default function LoadingBundlesPage() {
         const response = await fetch(`/api/generations/${genId}`);
 
         if (!response.ok) {
-          console.error('[Client] Failed to fetch generation status');
+          consecutiveFailuresRef.current += 1;
+          console.error(`[Client] Failed to fetch generation status (${response.status}), attempt ${consecutiveFailuresRef.current}/${MAX_CONSECUTIVE_FAILURES}`);
+
+          // Show error message to user
+          if (consecutiveFailuresRef.current === 1) {
+            setErrorMessage(`Polling failed with id: ${genId}, trying again...`);
+          } else if (consecutiveFailuresRef.current === 2) {
+            setErrorMessage(`Polling failed with id: ${genId}, trying one last time...`);
+          } else if (consecutiveFailuresRef.current >= MAX_CONSECUTIVE_FAILURES) {
+            stopPolling();
+            localStorage.removeItem(STORAGE_KEY_GENERATION_ID);
+            router.push("/error?message=" + encodeURIComponent(`Failed to fetch generation status after ${MAX_CONSECUTIVE_FAILURES} attempts. Status: ${response.status}`));
+          }
           return;
         }
 
         const data = await response.json();
         console.log(`[Client] Poll result - Status: ${data.status}`);
+
+        // Reset failure counter on successful fetch
+        consecutiveFailuresRef.current = 0;
+        setErrorMessage(null);
 
         // Rotate loading message on each poll
         setLoadingMessage(LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)]);
@@ -181,8 +200,20 @@ export default function LoadingBundlesPage() {
           router.push("/error?message=" + encodeURIComponent(data.error || 'Generation failed'));
         }
       } catch (error) {
-        console.error('[Client] Error polling status:', error);
-        // Don't stop polling on error - could be temporary network issue
+        consecutiveFailuresRef.current += 1;
+        console.error(`[Client] Error polling status:`, error, `attempt ${consecutiveFailuresRef.current}/${MAX_CONSECUTIVE_FAILURES}`);
+
+        // Show error message to user
+        if (consecutiveFailuresRef.current === 1) {
+          setErrorMessage(`Polling failed with id: ${genId}, trying again...`);
+        } else if (consecutiveFailuresRef.current === 2) {
+          setErrorMessage(`Polling failed with id: ${genId}, trying one last time...`);
+        } else if (consecutiveFailuresRef.current >= MAX_CONSECUTIVE_FAILURES) {
+          stopPolling();
+          localStorage.removeItem(STORAGE_KEY_GENERATION_ID);
+          const errorMsg = error instanceof Error ? error.message : 'Network error';
+          router.push("/error?message=" + encodeURIComponent(`Failed to poll generation status after ${MAX_CONSECUTIVE_FAILURES} attempts: ${errorMsg}`));
+        }
       }
     }
 
@@ -257,6 +288,12 @@ export default function LoadingBundlesPage() {
           <p className="font-bold text-base text-foreground opacity-85">
             {loadingMessage}
           </p>
+          {/* Error message for debugging */}
+          {errorMessage && (
+            <p className="mt-4 text-sm text-red-600 font-mono">
+              {errorMessage}
+            </p>
+          )}
         </div>
       </div>
 

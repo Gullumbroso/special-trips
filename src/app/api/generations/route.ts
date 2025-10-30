@@ -3,6 +3,7 @@ import { UserPreferences } from '@/lib/types';
 import { inngest } from '@/lib/inngest/client';
 import { randomUUID } from 'crypto';
 
+export const maxDuration = 800;
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 

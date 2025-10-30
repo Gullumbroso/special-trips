@@ -14,9 +14,8 @@ import { functions } from '@/lib/inngest/functions';
  * and delegates work to Inngest's infrastructure.
  */
 export const runtime = 'nodejs';
-// Set max duration to 5 minutes (300 seconds) to handle long-running generation
-// Note: Requires Vercel Pro plan. On Hobby plan, max is 10 seconds.
-export const maxDuration = 300;
+// Set max duration to 800 seconds to handle long-running generation
+export const maxDuration = 800;
 
 // Create and export handlers for Inngest
 const handlers = serve({

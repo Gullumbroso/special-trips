@@ -51,6 +51,88 @@ export async function rateLimitedFetch(url: string): Promise<Response> {
 }
 
 // ============================================================================
+// Date Sanitization
+// ============================================================================
+
+/**
+ * Sanitizes and validates ISO-8601 datetime strings
+ * Fixes common malformations like extra time components
+ *
+ * Examples of fixes:
+ * - "2026-01-29T23:59:59:59Z" → "2026-01-29T23:59:59Z" (removes extra time component)
+ * - "2026-01-29T23:59:59:59:59Z" → "2026-01-29T23:59:59Z" (removes multiple extra components)
+ * - "2026-01-29T25:00:00Z" → "2026-01-29T23:59:59Z" (fixes invalid hours)
+ *
+ * @param dateTimeString ISO-8601 datetime string (possibly malformed)
+ * @returns Sanitized ISO-8601 string or null if invalid
+ */
+function sanitizeDateTime(dateTimeString: string | undefined): string | undefined {
+  if (!dateTimeString) {
+    return undefined;
+  }
+
+  try {
+    // Check if it's a valid ISO string first
+    const testDate = new Date(dateTimeString);
+    if (!isNaN(testDate.getTime()) && dateTimeString.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[+-]\d{2}:\d{2})$/)) {
+      // Already valid ISO-8601 format
+      return dateTimeString;
+    }
+
+    // Pattern to match ISO-8601 with potential extra time components
+    // Captures: date, hours, minutes, seconds, and any extra components, plus timezone
+    const isoPattern = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2}):(\d{2})(?::(\d{2}))*(?::(\d{2}))*(Z|[+-]\d{2}:\d{2})?$/;
+    const match = dateTimeString.match(isoPattern);
+
+    if (!match) {
+      console.warn(`[TICKETMASTER] Cannot parse datetime string: ${dateTimeString}`);
+      return undefined;
+    }
+
+    const [, date, hours, minutes, seconds, , , timezone] = match;
+
+    // Validate and constrain time components
+    let h = parseInt(hours, 10);
+    let m = parseInt(minutes, 10);
+    let s = parseInt(seconds, 10);
+
+    // Constrain to valid ranges
+    if (h > 23) {
+      console.warn(`[TICKETMASTER] Invalid hours ${h} in ${dateTimeString}, capping to 23`);
+      h = 23;
+    }
+    if (m > 59) {
+      console.warn(`[TICKETMASTER] Invalid minutes ${m} in ${dateTimeString}, capping to 59`);
+      m = 59;
+    }
+    if (s > 59) {
+      console.warn(`[TICKETMASTER] Invalid seconds ${s} in ${dateTimeString}, capping to 59`);
+      s = 59;
+    }
+
+    // Reconstruct the datetime string
+    const sanitized = `${date}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}${timezone || 'Z'}`;
+
+    // Log if we made changes
+    if (sanitized !== dateTimeString) {
+      console.warn(`[TICKETMASTER] Sanitized malformed datetime: "${dateTimeString}" → "${sanitized}"`);
+    }
+
+    // Verify the result is a valid date
+    const verifyDate = new Date(sanitized);
+    if (isNaN(verifyDate.getTime())) {
+      console.warn(`[TICKETMASTER] Sanitization resulted in invalid date: ${sanitized}`);
+      return undefined;
+    }
+
+    return sanitized;
+  } catch (error) {
+    console.error(`[TICKETMASTER] Error sanitizing datetime "${dateTimeString}":`, error);
+    return undefined;
+  }
+}
+
+// ============================================================================
 // Type Definitions
 // ============================================================================
 
@@ -477,14 +559,18 @@ async function searchEvents(
   const startTime = Date.now();
 
   try {
+    // Sanitize date/time parameters to fix common malformations
+    const sanitizedStartDateTime = sanitizeDateTime(startDateTime);
+    const sanitizedEndDateTime = sanitizeDateTime(endDateTime);
+
     const url = buildUrl('/events.json', {
       countryCode,
       city,
       segmentId: segmentIds,
       genreId: genreIds,
       attractionId: attractionIds,
-      startDateTime,
-      endDateTime,
+      startDateTime: sanitizedStartDateTime,
+      endDateTime: sanitizedEndDateTime,
       size: '200',
       locale: '*',
     });

@@ -74,8 +74,8 @@ export default function LoadingBundlesPage() {
             console.log('⏱️ Client timer started (resuming)');
           }
 
-          // Start polling immediately
-          startPolling(storedGenerationId);
+          // Start polling immediately for resumed sessions
+          startPolling(storedGenerationId, true);
           return;
         }
 
@@ -127,19 +127,27 @@ export default function LoadingBundlesPage() {
           return;
         }
 
-        // Start polling for status
-        startPolling(data.generationId);
+        // Start polling for status with initial delay to avoid race condition
+        startPolling(data.generationId, false);
       } catch (error) {
         console.error('[Client] Failed to start generation:', error);
         router.push("/error?message=" + encodeURIComponent("Failed to start generation"));
       }
     }
 
-    function startPolling(genId: string) {
+    function startPolling(genId: string, pollImmediately: boolean = true) {
       console.log(`[Client] Starting polling for generation ${genId} (every ${POLL_INTERVAL_MS}ms)`);
 
-      // Poll immediately (important for resume case)
-      pollStatus(genId);
+      if (pollImmediately) {
+        // Poll immediately for resumed sessions
+        pollStatus(genId);
+      } else {
+        // For new generations, wait 10 seconds before first poll to avoid race condition
+        // This gives Inngest time to create the DB record
+        setTimeout(() => {
+          pollStatus(genId);
+        }, 10000);
+      }
 
       // Then poll every 25 seconds
       pollIntervalRef.current = setInterval(() => {

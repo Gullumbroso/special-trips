@@ -15,7 +15,7 @@ import { generateBundles } from '@/lib/services/generationService';
  * 3. Updates DB with results or error
  *
  * Error handling strategy:
- * - DB creation/update failures: Throw error → Inngest retries
+ * - DB creation/update failures: Throw error
  * - Generation failures: Catch, update DB with 'failed' status
  * - DB update failure when marking 'failed': Best effort, log only
  */
@@ -23,7 +23,7 @@ export const generateTripBundles = inngest.createFunction(
   {
     id: 'generate-trip-bundles',
     name: 'Generate Trip Bundles',
-    retries: 3, // Retry DB failures and transient errors
+    retries: 0, // No retries to avoid expensive AI operations
   },
   { event: 'generation.create' },
   async ({ event, step }) => {
@@ -35,7 +35,6 @@ export const generateTripBundles = inngest.createFunction(
     console.log(`[Inngest] Starting generation ${generationId}`);
 
     // Step 1: Create generation record in DB
-    // If this fails, Inngest will retry the entire function
     await step.run('create-generation-record', async () => {
       try {
         const expiresAt = new Date();

@@ -18,9 +18,12 @@ export const runtime = 'nodejs';
 export const maxDuration = 800;
 
 // Create and export handlers for Inngest
+// Enable streaming to keep connection alive during long-running operations
+// This prevents Vercel's 340s idle timeout on the response side
 const handlers = serve({
   client: inngest,
   functions,
+  streaming: 'force', // Required for Node.js runtime with Fluid Compute
 });
 
 export { handlers as GET, handlers as POST, handlers as PUT };

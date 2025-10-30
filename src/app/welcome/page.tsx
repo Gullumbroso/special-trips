@@ -16,7 +16,7 @@ export default function WelcomePage() {
     <div className="min-h-screen flex flex-col px-6">
       {/* Header with Logo and Clear Data Button */}
       <div className="flex justify-between items-center h-16 mb-20">
-        <div className="-ml-2">
+        <div>
           <Logo size="md" variant="type" />
         </div>
         <ClearDataButton />

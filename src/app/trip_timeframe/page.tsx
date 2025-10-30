@@ -23,7 +23,7 @@ export default function TripTimeframePage() {
     <div className="min-h-screen flex flex-col px-6 pb-8">
       {/* Header with Logo and Clear Data Button */}
       <div className="flex justify-between items-center h-16 mb-12">
-        <div className="-ml-2">
+        <div>
           <Logo size="md" variant="type" />
         </div>
         <ClearDataButton />

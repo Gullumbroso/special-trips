@@ -39,6 +39,7 @@ export interface UserPreferences {
   /**
    * Music taste profile (derived from Spotify or input by user).
    * Example: "Indie Rock, Neo-Soul, Jazz"
+   * Can also include favorite artists: "Music taste: Hip hop, indie rock. Favorite artists: Beyoncé, Kendrick Lamar."
    */
   musicProfile: string;
 

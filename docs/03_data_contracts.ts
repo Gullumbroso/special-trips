@@ -36,7 +36,7 @@ export interface UserPreferences {
   interests: InterestType[];
 
   /**
-   * Music taste profile (derived from Spotify or input by user).
+   * Music taste profile (input by user).
    * Example: "Indie Rock, Neo-Soul, Jazz"
    */
   musicProfile: string;

@@ -69,7 +69,7 @@ export default function SpotifyLoadingPage() {
   return (
     <div className="min-h-screen flex flex-col px-6 pb-8">
       {/* Logo */}
-      <div className="h-16 flex items-center mb-20 -ml-2">
+      <div className="h-16 flex items-center mb-20">
         <Logo size="md" variant="type" />
       </div>
 

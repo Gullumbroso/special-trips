@@ -267,7 +267,7 @@ export default function LoadingBundlesPage() {
   return (
     <div className="relative min-h-screen max-h-screen overflow-hidden flex flex-col px-6 bg-background">
       {/* Logo */}
-      <div className="h-16 flex items-center mb-12 -ml-2">
+      <div className="h-16 flex items-center mb-12">
         <Logo size="md" variant="type" />
       </div>
 

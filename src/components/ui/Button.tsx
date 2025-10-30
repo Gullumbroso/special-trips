@@ -1,4 +1,8 @@
+"use client";
+
 import { ButtonHTMLAttributes, ReactNode } from "react";
+import { useColorTheme } from "@/lib/context/ColorThemeContext";
+import { hexToRgba } from "@/lib/colorScheme";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
@@ -13,18 +17,28 @@ export default function Button({
   className = "",
   ...props
 }: ButtonProps) {
+  const { colorScheme } = useColorTheme();
   const baseStyles = "rounded-lg px-6 py-3 text-base font-bold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed";
-
-  const variantStyles = {
-    primary: "bg-primary text-white hover:bg-primary/90 active:bg-primary/80",
-    secondary: "bg-secondary-button text-foreground hover:bg-secondary-button/80 active:bg-secondary-button/70",
-  };
-
   const widthStyles = fullWidth ? "w-full" : "";
+
+  const getButtonStyles = () => {
+    if (variant === "primary") {
+      return {
+        backgroundColor: colorScheme.foreground,
+        color: "#FFFFFF",
+      };
+    } else {
+      return {
+        backgroundColor: hexToRgba(colorScheme.foreground, 0.08),
+        color: colorScheme.foreground,
+      };
+    }
+  };
 
   return (
     <button
-      className={`${baseStyles} ${variantStyles[variant]} ${widthStyles} ${className}`}
+      className={`${baseStyles} ${widthStyles} ${className}`}
+      style={getButtonStyles()}
       {...props}
     >
       {children}

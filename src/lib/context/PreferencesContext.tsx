@@ -7,6 +7,7 @@ import { migrateLegacyStorage } from "../utils/migrateLegacyStorage";
 interface PreferencesContextType {
   preferences: UserPreferences;
   bundles: TripBundle[] | null;
+  bundleColors: Record<number, string>; // Maps bundle index to color scheme name
   isHydrated: boolean;
   updateInterests: (interests: InterestType[]) => void;
   updateMusicProfile: (profile: string) => void;
@@ -14,6 +15,7 @@ interface PreferencesContextType {
   updateTimeframe: (timeframe: string) => void;
   updateOtherPreferences: (prefs: string) => void;
   setBundles: (bundles: TripBundle[]) => void;
+  setBundleColors: (colors: Record<number, string>) => void;
   resetPreferences: () => void;
   disconnectSpotify: () => void;
 }
@@ -30,6 +32,7 @@ const PreferencesContext = createContext<PreferencesContextType | undefined>(und
 export function PreferencesProvider({ children }: { children: ReactNode }) {
   const [preferences, setPreferences] = useState<UserPreferences>(defaultPreferences);
   const [bundles, setBundlesState] = useState<TripBundle[] | null>(null);
+  const [bundleColors, setBundleColorsState] = useState<Record<number, string>>({});
   const [isHydrated, setIsHydrated] = useState(false);
 
   // Hydrate from localStorage on mount
@@ -39,6 +42,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 
     const storedPrefs = localStorage.getItem("userPreferences");
     const storedBundles = localStorage.getItem("generatedBundles");
+    const storedBundleColors = localStorage.getItem("bundleColors");
 
     console.log("Hydrating from localStorage...");
     console.log("Stored bundles found:", !!storedBundles);
@@ -61,6 +65,14 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       }
     }
 
+    if (storedBundleColors) {
+      try {
+        setBundleColorsState(JSON.parse(storedBundleColors));
+      } catch (error) {
+        console.error("Failed to parse stored bundle colors:", error);
+      }
+    }
+
     setIsHydrated(true);
   }, []);
 
@@ -78,6 +90,13 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       localStorage.setItem("generatedBundles", JSON.stringify(bundles));
     }
   }, [bundles, isHydrated]);
+
+  // Sync bundle colors to localStorage on changes
+  useEffect(() => {
+    if (isHydrated) {
+      localStorage.setItem("bundleColors", JSON.stringify(bundleColors));
+    }
+  }, [bundleColors, isHydrated]);
 
   const updateInterests = (interests: InterestType[]) => {
     setPreferences((prev) => ({ ...prev, interests }));
@@ -103,11 +122,17 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     setBundlesState(newBundles);
   };
 
+  const setBundleColors = (colors: Record<number, string>) => {
+    setBundleColorsState(colors);
+  };
+
   const resetPreferences = () => {
     setPreferences(defaultPreferences);
     setBundlesState(null);
+    setBundleColorsState({});
     localStorage.removeItem("userPreferences");
     localStorage.removeItem("generatedBundles");
+    localStorage.removeItem("bundleColors");
   };
 
   const disconnectSpotify = () => {
@@ -123,6 +148,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       value={{
         preferences,
         bundles,
+        bundleColors,
         isHydrated,
         updateInterests,
         updateMusicProfile,
@@ -130,6 +156,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
         updateTimeframe,
         updateOtherPreferences,
         setBundles,
+        setBundleColors,
         resetPreferences,
         disconnectSpotify,
       }}

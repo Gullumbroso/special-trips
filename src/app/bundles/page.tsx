@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { TripBundle } from "@/lib/types";
 import { getBundles } from "@/lib/bundleService";
@@ -10,13 +10,19 @@ import BundleCard from "@/components/bundles/BundleCard";
 import Button from "@/components/ui/Button";
 import Dialog from "@/components/ui/Dialog";
 import Logo from "@/components/ui/Logo";
+import { COLOR_SCHEMES, ColorScheme, getUniqueRandomColorSchemes } from "@/lib/colorScheme";
+import { useColorTheme } from "@/lib/context/ColorThemeContext";
 
 export default function BundlesPage() {
   const router = useRouter();
-  const { bundles: generatedBundles, isHydrated, resetPreferences } = usePreferences();
+  const { bundles: generatedBundles, bundleColors, isHydrated, resetPreferences, setBundleColors } = usePreferences();
   const [bundles, setBundles] = useState<TripBundle[]>([]);
+  const [colorSchemes, setColorSchemes] = useState<ColorScheme[]>([]);
   const [loading, setLoading] = useState(true);
   const [showRestartDialog, setShowRestartDialog] = useState(false);
+  const [navbarColorScheme, setNavbarColorScheme] = useState<ColorScheme>(COLOR_SCHEMES.WHITE_BLACK);
+  const { setColorScheme } = useColorTheme();
+  const bundleRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
     // Function to add imageUrl to each bundle from its events
@@ -65,22 +71,79 @@ export default function BundlesPage() {
       console.log('Loading bundles, generatedBundles:', generatedBundles);
       // Use generated bundles from context if available, otherwise fall back to static data
       // generatedBundles is always an array (or null)
+      let bundlesToUse: TripBundle[] = [];
       if (generatedBundles && generatedBundles.length > 0) {
         console.log('Using generated bundles:', generatedBundles.length);
-        const bundlesWithImages = addBundleImages(generatedBundles);
-        setBundles(bundlesWithImages);
-        setLoading(false);
+        bundlesToUse = addBundleImages(generatedBundles);
       } else {
         // Fallback to static data for development
         console.log('Using fallback sample data');
         const data = await getBundles();
-        const bundlesWithImages = addBundleImages(data);
-        setBundles(bundlesWithImages);
-        setLoading(false);
+        bundlesToUse = addBundleImages(data);
       }
+
+      setBundles(bundlesToUse);
+
+      // Generate or retrieve color schemes for bundles
+      if (Object.keys(bundleColors).length > 0) {
+        // Use existing colors
+        const schemes = bundlesToUse.map((_, index) => {
+          const colorName = bundleColors[index];
+          return Object.values(COLOR_SCHEMES).find(s => s.name === colorName) || COLOR_SCHEMES.PINK_BLUE;
+        });
+        setColorSchemes(schemes);
+      } else {
+        // Generate new random colors for each bundle
+        const schemes = getUniqueRandomColorSchemes(bundlesToUse.length);
+        setColorSchemes(schemes);
+
+        // Store color assignments
+        const colorMap: Record<number, string> = {};
+        schemes.forEach((scheme, index) => {
+          colorMap[index] = scheme.name;
+        });
+        setBundleColors(colorMap);
+      }
+
+      setLoading(false);
     }
     loadBundles();
-  }, [generatedBundles, isHydrated]);
+  }, [generatedBundles, bundleColors, isHydrated, setBundleColors]);
+
+  // Scroll detection for navbar color switching
+  useEffect(() => {
+    if (bundleRefs.current.length === 0 || colorSchemes.length === 0) return;
+
+    const handleScroll = () => {
+      const NAVBAR_HEIGHT = 64; // 16 * 4 = 64px (h-16)
+
+      // Find which bundle section the navbar bottom edge is touching
+      for (let i = 0; i < bundleRefs.current.length; i++) {
+        const bundleElement = bundleRefs.current[i];
+        if (!bundleElement) continue;
+
+        const rect = bundleElement.getBoundingClientRect();
+
+        // Check if navbar bottom edge (64px from top) is within this bundle section
+        if (rect.top <= NAVBAR_HEIGHT && rect.bottom > NAVBAR_HEIGHT) {
+          // Navbar is within this bundle
+          setNavbarColorScheme(colorSchemes[i]);
+          setColorScheme(colorSchemes[i]);
+          return;
+        }
+      }
+
+      // Default to white/black if above all bundles
+      setNavbarColorScheme(COLOR_SCHEMES.WHITE_BLACK);
+      setColorScheme(COLOR_SCHEMES.WHITE_BLACK);
+    };
+
+    // Initial check
+    handleScroll();
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [colorSchemes, setColorScheme]);
 
   // Generate summary message
   const getSummaryMessage = () => {
@@ -112,9 +175,18 @@ export default function BundlesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen" style={{ backgroundColor: '#FFFFFF' }}>
       {/* Header */}
-      <div className="sticky top-0 bg-background px-4 h-16 flex items-center z-10">
+      <div
+        className="sticky top-0 px-4 h-16 flex items-center z-10"
+        style={{
+          backgroundColor: navbarColorScheme.background,
+          borderBottom: navbarColorScheme.name === "White Black"
+            ? '1px solid #FFFFFF'
+            : `1px solid ${navbarColorScheme.foreground}80`,
+          transition: 'background-color 0.4s ease',
+        }}
+      >
         <Logo size="md" variant="type" />
       </div>
 
@@ -123,25 +195,36 @@ export default function BundlesPage() {
         {/* Summary Message */}
         {bundles.length > 0 && (
           <div className="mb-[42px]">
-            <h4 className="whitespace-pre-line">
+            <h4 className="whitespace-pre-line" style={{ color: '#000000' }}>
               {getSummaryMessage()}
             </h4>
           </div>
         )}
 
         {bundles.map((bundle, index) => (
-          <BundleCard key={index} bundle={bundle} index={index} />
+          <div key={index} ref={(el) => { bundleRefs.current[index] = el; }}>
+            <BundleCard
+              bundle={bundle}
+              index={index}
+              colorScheme={colorSchemes[index] || COLOR_SCHEMES.PINK_BLUE}
+            />
+          </div>
         ))}
 
         {/* Restart CTA */}
-        <div className="text-center py-8">
+        <div
+          className="text-center pt-10 pb-20 -mx-4 px-4"
+          style={{
+            backgroundColor: colorSchemes[colorSchemes.length - 1]?.background || COLOR_SCHEMES.PINK_BLUE.background,
+          }}
+        >
           <Button
             variant="secondary"
             fullWidth={false}
             onClick={() => setShowRestartDialog(true)}
             className="px-8"
           >
-            🔄 Start Over
+            Start Over
           </Button>
         </div>
       </div>

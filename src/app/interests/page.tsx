@@ -10,6 +10,8 @@ import { InterestType } from "@/lib/types";
 import Link from "next/link";
 import Logo from "@/components/ui/Logo";
 import ClearDataButton from "@/components/ui/ClearDataButton";
+import PageColorWrapper from "@/components/ui/PageColorWrapper";
+import { COLOR_SCHEMES } from "@/lib/colorScheme";
 
 export default function InterestsPage() {
   const router = useRouter();
@@ -39,7 +41,7 @@ export default function InterestsPage() {
   const isValid = selectedInterests.length >= 2;
 
   return (
-    <div className="min-h-screen flex flex-col px-6 pb-8">
+    <PageColorWrapper colorScheme={COLOR_SCHEMES.PINK_BLUE} className="flex flex-col px-6 pb-8">
       {/* Header with Logo and Clear Data Button */}
       <div className="flex justify-between items-center h-16 mb-12">
         <div>
@@ -50,11 +52,11 @@ export default function InterestsPage() {
 
       {/* Content */}
       <div className="flex-1 flex flex-col max-w-md">
-        <h1 className="mb-4 leading-tight">
+        <h2 className="mb-3">
           What type of events you like?
-        </h1>
+        </h2>
 
-        <p className="text-base font-normal text-black mb-8">Select at least two</p>
+        <p className="text-base font-normal mb-6">Select at least two</p>
 
         <div className="space-y-3 mb-12">
           {INTEREST_OPTIONS.map((option) => (
@@ -79,6 +81,6 @@ export default function InterestsPage() {
           </Button>
         </div>
       </div>
-    </div>
+    </PageColorWrapper>
   );
 }

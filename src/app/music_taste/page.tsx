@@ -9,6 +9,8 @@ import Link from "next/link";
 import InfiniteCarousel from "@/components/spotify/InfiniteCarousel";
 import Logo from "@/components/ui/Logo";
 import ClearDataButton from "@/components/ui/ClearDataButton";
+import PageColorWrapper from "@/components/ui/PageColorWrapper";
+import { COLOR_SCHEMES } from "@/lib/colorScheme";
 
 function MusicTasteContent() {
   const router = useRouter();
@@ -118,7 +120,7 @@ function MusicTasteContent() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col px-6 pb-8">
+    <PageColorWrapper colorScheme={COLOR_SCHEMES.GREEN_RED} className="flex flex-col px-6 pb-8">
       {/* Header with Logo and Clear Data Button */}
       <div className="flex justify-between items-center h-16 mb-12">
         <div>
@@ -158,9 +160,9 @@ function MusicTasteContent() {
         {hasSpotifyProfile ? (
           // Spotify connected view
           <>
-            <h1 className="mb-8 leading-tight">
+            <h2 className="mb-4">
               Your music taste profile is ready.
-            </h1>
+            </h2>
 
             <div className="flex gap-3 mb-16">
               <Link href="/interests" className="flex-shrink-0">
@@ -208,11 +210,11 @@ function MusicTasteContent() {
         ) : (
           // Default view (connect Spotify or manual entry)
           <>
-            <h1 className="mb-8 leading-tight">
+            <h2 className="mb-4">
               What type of music are you into?
-            </h1>
+            </h2>
 
-            <p className="text-base font-normal text-black mb-4">
+            <p className="text-base font-normal mb-3">
               What kind of music do you enjoy? Tell us about your favorite genres or vibes.
             </p>
 
@@ -220,11 +222,11 @@ function MusicTasteContent() {
               value={musicProfile}
               onChange={(e) => setMusicProfile(e.target.value)}
               placeholder="Hip hop, indie rock, electronic, underground jazz venues..."
-              className="mb-8"
+              className="mb-6"
               rows={6}
             />
 
-            <p className="text-base font-normal text-black mb-4">
+            <p className="text-base font-normal mb-3">
               Who are some artists you love? List a few so we can get a feel for your taste.
             </p>
 
@@ -232,7 +234,7 @@ function MusicTasteContent() {
               value={favoriteArtists}
               onChange={(e) => setFavoriteArtists(e.target.value)}
               placeholder="Beyoncé, Kendrick Lamar, Bad Bunny, Radiohead, Black Coffee, Rosalía..."
-              className="mb-8"
+              className="mb-6"
               rows={6}
             />
 
@@ -249,7 +251,7 @@ function MusicTasteContent() {
           </>
         )}
       </div>
-    </div>
+    </PageColorWrapper>
   );
 }
 

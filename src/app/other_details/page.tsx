@@ -8,6 +8,8 @@ import { usePreferences } from "@/lib/context/PreferencesContext";
 import Link from "next/link";
 import Logo from "@/components/ui/Logo";
 import ClearDataButton from "@/components/ui/ClearDataButton";
+import PageColorWrapper from "@/components/ui/PageColorWrapper";
+import { COLOR_SCHEMES } from "@/lib/colorScheme";
 
 export default function OtherDetailsPage() {
   const router = useRouter();
@@ -20,7 +22,7 @@ export default function OtherDetailsPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col px-6 pb-8">
+    <PageColorWrapper colorScheme={COLOR_SCHEMES.YELLOW_PURPLE} className="flex flex-col px-6 pb-8">
       {/* Header with Logo and Clear Data Button */}
       <div className="flex justify-between items-center h-16 mb-12">
         <div>
@@ -31,17 +33,17 @@ export default function OtherDetailsPage() {
 
       {/* Content */}
       <div className="flex-1 flex flex-col max-w-md">
-        <h1 className="mb-4 leading-tight">
+        <h2 className="mb-3">
           Any other preferences?
-        </h1>
+        </h2>
 
-        <p className="text-base font-normal text-black mb-8">(Optional)</p>
+        <p className="text-base font-normal mb-6">(Optional)</p>
 
         <Textarea
           value={otherPreferences}
           onChange={(e) => setOtherPreferences(e.target.value)}
           placeholder="e.g., Budget friendly, not too cold, focus on big events, I like history..."
-          className="mb-12"
+          className="mb-8"
           rows={6}
         />
 
@@ -56,6 +58,6 @@ export default function OtherDetailsPage() {
           </Button>
         </div>
       </div>
-    </div>
+    </PageColorWrapper>
   );
 }

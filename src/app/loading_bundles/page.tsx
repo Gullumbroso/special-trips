@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { usePreferences } from "@/lib/context/PreferencesContext";
 import Logo from "@/components/ui/Logo";
 import EmptyBundlesState from "@/components/EmptyBundlesState";
+import PageColorWrapper from "@/components/ui/PageColorWrapper";
+import { COLOR_SCHEMES } from "@/lib/colorScheme";
 
 // Storage key for generation ID
 const STORAGE_KEY_GENERATION_ID = 'special-trips-generation-id';
@@ -265,7 +267,7 @@ export default function LoadingBundlesPage() {
   }
 
   return (
-    <div className="relative min-h-screen max-h-screen overflow-hidden flex flex-col px-6 bg-background">
+    <PageColorWrapper colorScheme={COLOR_SCHEMES.WHITE_BLACK} className="relative max-h-screen overflow-hidden flex flex-col px-6">
       {/* Logo */}
       <div className="h-16 flex items-center mb-12">
         <Logo size="md" variant="type" />
@@ -277,7 +279,7 @@ export default function LoadingBundlesPage() {
           {isResuming ? "Still on it..." : "Working on it..."}
         </h1>
 
-        <p className="text-base font-normal text-black mb-6">
+        <p className="text-base font-normal mb-6">
           This might take a few minutes.
           <br />
           We&apos;ll let you know once we&apos;re done.
@@ -309,6 +311,6 @@ export default function LoadingBundlesPage() {
       <div className="fixed bottom-0 left-0 right-0" style={{ height: '512px' }}>
         <div className="w-full h-full bg-gradient-to-t from-background to-transparent pointer-events-none" />
       </div>
-    </div>
+    </PageColorWrapper>
   );
 }

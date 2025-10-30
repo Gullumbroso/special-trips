@@ -3,11 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { usePreferences } from "@/lib/context/PreferencesContext";
+import { useColorTheme } from "@/lib/context/ColorThemeContext";
+import { hexToRgba } from "@/lib/colorScheme";
 import Dialog from "./Dialog";
 
 export default function ClearDataButton() {
   const router = useRouter();
   const { resetPreferences } = usePreferences();
+  const { colorScheme } = useColorTheme();
   const [showDialog, setShowDialog] = useState(false);
 
   const handleClearData = () => {
@@ -21,7 +24,11 @@ export default function ClearDataButton() {
     <>
       <button
         onClick={() => setShowDialog(true)}
-        className="text-sm text-gray-600 hover:text-black transition-colors font-normal px-3 py-1.5 rounded-md bg-gray-100 hover:bg-gray-200 active:bg-gray-200"
+        className="text-sm transition-opacity font-normal px-3 py-1.5 rounded-md hover:opacity-70 active:opacity-60"
+        style={{
+          color: colorScheme.foreground,
+          backgroundColor: hexToRgba(colorScheme.foreground, 0.1),
+        }}
         aria-label="Clear data"
       >
         Clear data

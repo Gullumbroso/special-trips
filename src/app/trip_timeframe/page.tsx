@@ -8,6 +8,8 @@ import { usePreferences } from "@/lib/context/PreferencesContext";
 import Link from "next/link";
 import Logo from "@/components/ui/Logo";
 import ClearDataButton from "@/components/ui/ClearDataButton";
+import PageColorWrapper from "@/components/ui/PageColorWrapper";
+import { COLOR_SCHEMES } from "@/lib/colorScheme";
 
 export default function TripTimeframePage() {
   const router = useRouter();
@@ -20,7 +22,7 @@ export default function TripTimeframePage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col px-6 pb-8">
+    <PageColorWrapper colorScheme={COLOR_SCHEMES.BLUE_GREEN} className="flex flex-col px-6 pb-8">
       {/* Header with Logo and Clear Data Button */}
       <div className="flex justify-between items-center h-16 mb-12">
         <div>
@@ -31,15 +33,15 @@ export default function TripTimeframePage() {
 
       {/* Content */}
       <div className="flex-1 flex flex-col max-w-md">
-        <h1 className="mb-8 leading-tight">
+        <h2 className="mb-4">
           When are you planning to travel?
-        </h1>
+        </h2>
 
         <Input
           value={timeframe}
           onChange={(e) => setTimeframe(e.target.value)}
           placeholder='e.g., "November 2025", "Spring 2026", "next 3 months"'
-          className="mb-12"
+          className="mb-8"
         />
 
         <div className="flex gap-3">
@@ -53,6 +55,6 @@ export default function TripTimeframePage() {
           </Button>
         </div>
       </div>
-    </div>
+    </PageColorWrapper>
   );
 }

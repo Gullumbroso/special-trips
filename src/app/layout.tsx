@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Fraunces } from "next/font/google";
 import "./globals.css";
 import { PreferencesProvider } from "@/lib/context/PreferencesContext";
+import { ColorThemeProvider } from "@/lib/context/ColorThemeContext";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -32,9 +33,11 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${fraunces.variable} antialiased`}
       >
-        <PreferencesProvider>
-          {children}
-        </PreferencesProvider>
+        <ColorThemeProvider>
+          <PreferencesProvider>
+            {children}
+          </PreferencesProvider>
+        </ColorThemeProvider>
       </body>
     </html>
   );

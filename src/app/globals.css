@@ -29,40 +29,37 @@ body {
 }
 
 /* Base styles for typography according to design system */
+/* Typography colors are now managed by the color scheme context and inherit from parent */
 @layer base {
   h1 {
     font-family: var(--font-fraunces), serif;
-    font-size: 2rem; /* 32px */
+    font-size: 2.5rem; /* 40px */
     font-weight: 700; /* bold */
-    color: var(--foreground);
+    line-height: 1.15;
   }
 
   h2 {
     font-family: var(--font-fraunces), serif;
     font-size: 1.5rem; /* 24px */
     font-weight: 700; /* bold */
-    color: var(--foreground);
   }
 
   h3 {
     font-family: var(--font-fraunces), serif;
     font-size: 1.25rem; /* 20px */
     font-weight: 700; /* bold */
-    color: var(--foreground);
   }
 
   h4 {
     font-family: var(--font-inter), system-ui, sans-serif;
     font-size: 1.25rem; /* 20px */
     font-weight: 400; /* regular */
-    color: var(--foreground);
   }
 
   p {
     font-family: var(--font-inter), system-ui, sans-serif;
     font-size: 1rem; /* 16px */
     font-weight: 400; /* regular */
-    color: var(--foreground);
   }
 }
 

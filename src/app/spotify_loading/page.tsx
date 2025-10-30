@@ -4,6 +4,8 @@ import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { usePreferences } from "@/lib/context/PreferencesContext";
 import Logo from "@/components/ui/Logo";
+import PageColorWrapper from "@/components/ui/PageColorWrapper";
+import { COLOR_SCHEMES } from "@/lib/colorScheme";
 
 export default function SpotifyLoadingPage() {
   const router = useRouter();
@@ -67,7 +69,7 @@ export default function SpotifyLoadingPage() {
   }, [router, updateSpotifyMusicProfile, updateMusicProfile]);
 
   return (
-    <div className="min-h-screen flex flex-col px-6 pb-8">
+    <PageColorWrapper colorScheme={COLOR_SCHEMES.WHITE_BLACK} className="flex flex-col px-6 pb-8">
       {/* Logo */}
       <div className="h-16 flex items-center mb-20">
         <Logo size="md" variant="type" />
@@ -79,7 +81,7 @@ export default function SpotifyLoadingPage() {
           Connecting Spotify...
         </h1>
 
-        <p className="text-base font-normal text-black mb-6">
+        <p className="text-base font-normal mb-6">
           We&apos;re connecting Spotify and learning your music taste.
           <br />
           This might take a few moments.
@@ -93,6 +95,6 @@ export default function SpotifyLoadingPage() {
           </svg>
         </div>
       </div>
-    </div>
+    </PageColorWrapper>
   );
 }

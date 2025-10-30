@@ -16,7 +16,7 @@
 Our serif font: Fraunces Bold (a Google font)
 Our san-serif font: Inter
 All black unless stated outherwise
-- H1: 32 serif bold
+- H1: 40 serif bold with line height 1.15
 - H2: 24 serif bold
 - H3: 20 serif bold
 - H4: 20 san-serif regular

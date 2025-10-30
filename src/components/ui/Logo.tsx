@@ -1,5 +1,7 @@
-import Image from "next/image";
+"use client";
+
 import Link from "next/link";
+import { useColorTheme } from "@/lib/context/ColorThemeContext";
 
 interface LogoProps {
   size?: "sm" | "md" | "lg";
@@ -8,6 +10,8 @@ interface LogoProps {
 }
 
 export default function Logo({ size = "md", linkTo, variant = "default" }: LogoProps) {
+  const { colorScheme } = useColorTheme();
+
   // Both logo_type.svg and logo.svg: 123x19 (ratio ~6.47:1)
   const sizes = {
     sm: { height: 20, width: 129 },
@@ -19,13 +23,21 @@ export default function Logo({ size = "md", linkTo, variant = "default" }: LogoP
   const logoSrc = variant === "type" ? "/logo_type.svg" : "/logo.svg";
 
   const logo = (
-    <Image
-      src={logoSrc}
-      alt="SpecialTrips"
-      height={sizes[size].height}
-      width={sizes[size].width}
-      priority
-      className="object-contain"
+    <div
+      style={{
+        width: sizes[size].width,
+        height: sizes[size].height,
+        backgroundColor: colorScheme.foreground,
+        maskImage: `url(${logoSrc})`,
+        WebkitMaskImage: `url(${logoSrc})`,
+        maskSize: 'contain',
+        WebkitMaskSize: 'contain',
+        maskRepeat: 'no-repeat',
+        WebkitMaskRepeat: 'no-repeat',
+        maskPosition: 'center',
+        WebkitMaskPosition: 'center',
+        transition: 'background-color 0.2s ease',
+      }}
     />
   );
 

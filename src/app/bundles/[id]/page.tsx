@@ -10,13 +10,17 @@ import Button from "@/components/ui/Button";
 import Chip from "@/components/ui/Chip";
 import { usePreferences } from "@/lib/context/PreferencesContext";
 import { INTEREST_EMOJIS } from "@/lib/constants";
+import { COLOR_SCHEMES, ColorScheme, hexToRgba } from "@/lib/colorScheme";
+import { useColorTheme } from "@/lib/context/ColorThemeContext";
 
 export default function BundleDetailsPage() {
   const router = useRouter();
   const params = useParams();
-  const { bundles: generatedBundles, isHydrated } = usePreferences();
+  const { bundles: generatedBundles, bundleColors, isHydrated } = usePreferences();
   const [bundle, setBundle] = useState<TripBundle | null>(null);
+  const [colorScheme, setColorSchemeState] = useState<ColorScheme>(COLOR_SCHEMES.WHITE_BLACK);
   const [loading, setLoading] = useState(true);
+  const { setColorScheme: setGlobalColorScheme } = useColorTheme();
 
   useEffect(() => {
     async function loadBundle() {
@@ -36,11 +40,26 @@ export default function BundleDetailsPage() {
           const data = await getBundleById(params.id as string);
           setBundle(data);
         }
+
+        // Load the color scheme for this bundle
+        const colorName = bundleColors[index];
+        if (colorName) {
+          const scheme = Object.values(COLOR_SCHEMES).find(s => s.name === colorName);
+          if (scheme) {
+            setColorSchemeState(scheme);
+          }
+        }
+
         setLoading(false);
       }
     }
     loadBundle();
-  }, [params.id, generatedBundles, isHydrated]);
+  }, [params.id, generatedBundles, bundleColors, isHydrated]);
+
+  // Set global color scheme when component mounts
+  useEffect(() => {
+    setGlobalColorScheme(colorScheme);
+  }, [colorScheme, setGlobalColorScheme]);
 
   if (loading) {
     return (
@@ -64,12 +83,13 @@ export default function BundleDetailsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen pb-20" style={{ backgroundColor: colorScheme.background }}>
       {/* Back Button - Fixed Header */}
-      <div className="sticky top-0 bg-background px-4 py-4 z-10">
+      <div className="sticky top-0 px-4 py-4 z-10" style={{ backgroundColor: colorScheme.background }}>
         <button
           onClick={() => router.push("/bundles")}
-          className="flex items-center gap-2 text-foreground hover:text-text-gray transition-colors"
+          className="flex items-center gap-2 hover:opacity-70 transition-opacity"
+          style={{ color: colorScheme.foreground }}
         >
           <span>←</span>
           <span className="font-medium">Back</span>
@@ -80,7 +100,7 @@ export default function BundleDetailsPage() {
       <div className="px-4 py-8">
         {/* Header Info */}
         <div className="mb-6">
-          <h1 className="mb-4 leading-tight">
+          <h1 className="mb-4 leading-tight" style={{ color: colorScheme.foreground }}>
             {bundle.title}
           </h1>
 
@@ -89,27 +109,27 @@ export default function BundleDetailsPage() {
             <Chip>{bundle.city}</Chip>
           </div>
 
-          <p className="text-base font-normal text-black leading-relaxed">
+          <p className="text-base font-normal leading-relaxed" style={{ color: colorScheme.foreground }}>
             {bundle.description}
           </p>
         </div>
 
         {/* Events Overview */}
-        <div className="mb-8 p-4 rounded-lg" style={{ backgroundColor: '#F2F2F7' }}>
-          <div className="text-base font-bold mb-3">Key events</div>
+        <div className="mb-8 p-4 rounded-lg" style={{ backgroundColor: hexToRgba(colorScheme.foreground, 0.08) }}>
+          <div className="text-base font-bold mb-3" style={{ color: colorScheme.foreground }}>Key events</div>
           <div className="space-y-3">
             {bundle.keyEvents.map((event, idx) => (
-              <div key={idx} className="text-sm leading-relaxed">
+              <div key={idx} className="text-sm leading-relaxed" style={{ color: colorScheme.foreground }}>
                 {INTEREST_EMOJIS[event.interestType]} {event.title}
               </div>
             ))}
           </div>
           {bundle.minorEvents.length > 0 && (
             <>
-              <div className="text-base font-bold mb-3 mt-6">Other interesting events</div>
+              <div className="text-base font-bold mb-3 mt-6" style={{ color: colorScheme.foreground }}>Other interesting events</div>
               <div className="space-y-3">
                 {bundle.minorEvents.map((event, idx) => (
-                  <div key={idx} className="text-sm leading-relaxed">
+                  <div key={idx} className="text-sm leading-relaxed" style={{ color: colorScheme.foreground }}>
                     {INTEREST_EMOJIS[event.interestType]} {event.title}
                   </div>
                 ))}
@@ -120,7 +140,7 @@ export default function BundleDetailsPage() {
 
         {/* Key Events */}
         <div className="mb-8">
-          <h4 className="mb-4 sticky top-[56px] bg-background pb-2 z-[5]">Key Events</h4>
+          <h4 className="mb-4 sticky top-[56px] pb-2 z-[5]" style={{ backgroundColor: colorScheme.background, color: colorScheme.foreground }}>Key Events</h4>
           {bundle.keyEvents.map((event, idx) => (
             <EventCard key={idx} event={event} />
           ))}
@@ -129,7 +149,7 @@ export default function BundleDetailsPage() {
         {/* Minor Events */}
         {bundle.minorEvents.length > 0 && (
           <div>
-            <h4 className="mb-4 sticky top-[56px] bg-background pb-2 z-[5]">
+            <h4 className="mb-4 sticky top-[56px] pb-2 z-[5]" style={{ backgroundColor: colorScheme.background, color: colorScheme.foreground }}>
               Other Interesting Events
             </h4>
             {bundle.minorEvents.map((event, idx) => (

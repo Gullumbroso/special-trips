@@ -21,12 +21,25 @@ function MusicTasteContent() {
   const spotifyConnected = searchParams.get("spotify") === "connected";
   const spotifyError = searchParams.get("error");
 
+  // Initialize fields from saved preferences
   useEffect(() => {
-    // Update local state if Spotify profile was just connected
-    if (spotifyConnected && preferences.musicProfile) {
-      setMusicProfile(preferences.musicProfile);
+    if (preferences.musicProfile) {
+      // Parse the saved concatenated format back into separate fields
+      const saved = preferences.musicProfile;
+
+      // Extract music taste
+      const musicTasteMatch = saved.match(/Music taste: ([^.]+)\./);
+      if (musicTasteMatch) {
+        setMusicProfile(musicTasteMatch[1].trim());
+      }
+
+      // Extract favorite artists
+      const artistsMatch = saved.match(/Favorite artists: ([^.]+)\./);
+      if (artistsMatch) {
+        setFavoriteArtists(artistsMatch[1].trim());
+      }
     }
-  }, [spotifyConnected, preferences.musicProfile]);
+  }, [preferences.musicProfile]);
 
   const handleNext = () => {
     // Concatenate both fields into musicProfile
@@ -40,7 +53,11 @@ function MusicTasteContent() {
     const combinedProfile = parts.join(". ") + (parts.length > 0 ? "." : "");
 
     updateMusicProfile(combinedProfile);
-    router.push("/trip_timeframe");
+
+    // Wait for React to flush state updates and effects before navigating
+    setTimeout(() => {
+      router.push("/trip_timeframe");
+    }, 50);
   };
 
   const handleConnectSpotify = () => {

@@ -13,11 +13,11 @@ export default function WelcomePage() {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col px-6 pt-3">
+    <div className="min-h-screen flex flex-col px-6">
       {/* Header with Logo and Clear Data Button */}
-      <div className="flex justify-between items-center mb-20">
+      <div className="flex justify-between items-center h-16 mb-20">
         <div className="-ml-2">
-          <Logo size="md" />
+          <Logo size="md" variant="type" />
         </div>
         <ClearDataButton />
       </div>

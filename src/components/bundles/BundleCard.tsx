@@ -97,7 +97,7 @@ export default function BundleCard({ bundle, index }: BundleCardProps) {
           style={{ borderRadius: '8px' }}
         >
           <Link href={`/bundles/${index}`} className="block">
-            <button className="w-full bg-primary text-black font-bold py-4 hover:bg-primary/90 active:bg-primary/80 transition-all duration-200" style={{ borderRadius: '8px' }}>
+            <button className="w-full bg-primary text-white font-bold py-3 hover:bg-primary/90 active:bg-primary/80 transition-all duration-200" style={{ borderRadius: '8px' }}>
               → Explore {bundle.city} Trip
             </button>
           </Link>

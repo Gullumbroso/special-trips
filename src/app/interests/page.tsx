@@ -39,11 +39,11 @@ export default function InterestsPage() {
   const isValid = selectedInterests.length >= 2;
 
   return (
-    <div className="min-h-screen flex flex-col px-6 pt-3 pb-8">
+    <div className="min-h-screen flex flex-col px-6 pb-8">
       {/* Header with Logo and Clear Data Button */}
-      <div className="flex justify-between items-center mb-12">
+      <div className="flex justify-between items-center h-16 mb-12">
         <div className="-ml-2">
-          <Logo size="md" />
+          <Logo size="md" variant="type" />
         </div>
         <ClearDataButton />
       </div>

@@ -265,10 +265,10 @@ export default function LoadingBundlesPage() {
   }
 
   return (
-    <div className="relative min-h-screen max-h-screen overflow-hidden flex flex-col px-6 pt-3 bg-background">
+    <div className="relative min-h-screen max-h-screen overflow-hidden flex flex-col px-6 bg-background">
       {/* Logo */}
-      <div className="mb-12 -ml-2">
-        <Logo size="md" />
+      <div className="h-16 flex items-center mb-12 -ml-2">
+        <Logo size="md" variant="type" />
       </div>
 
       {/* Main content */}
@@ -286,8 +286,8 @@ export default function LoadingBundlesPage() {
         {/* Spinner */}
         <div className="mb-8">
           <svg width="36" height="36" viewBox="0 0 36 36" className="animate-spin">
-            <circle cx="18" cy="18" r="16" fill="none" stroke="#B8F501" strokeWidth="4" opacity="0.25"/>
-            <path d="M18 2 A16 16 0 0 1 34 18" fill="none" stroke="#B8F501" strokeWidth="4" strokeLinecap="round"/>
+            <circle cx="18" cy="18" r="16" fill="none" stroke="#000000" strokeWidth="4" opacity="0.25"/>
+            <path d="M18 2 A16 16 0 0 1 34 18" fill="none" stroke="#000000" strokeWidth="4" strokeLinecap="round"/>
           </svg>
         </div>
 

@@ -1,7 +1,7 @@
 ## Design System
 
 ### Color Palette
-- Primary: #B8F501
+- Primary: #000000 (black)
 - Background: white
 - Text: black / dark gray
 - Accents:
@@ -9,13 +9,16 @@
   - Secondary Buttons: #F2F2F7
   - Other: Based on Figma designs
 
-### Typography 
-Our serif font: Belsey
+### New Colors Palette
+- 
+
+### Typography
+Our serif font: Fraunces Bold (a Google font)
 Our san-serif font: Inter
 All black unless stated outherwise
-- H1: 32 serif semi-bold
-- H2: 24 serif semi-bold
-- H3: 20 serif semi-bold
+- H1: 32 serif bold
+- H2: 24 serif bold
+- H3: 20 serif bold
 - H4: 20 san-serif regular
 - Body: 16 san-serif regular
 - Body Small:  14 san-serif regular

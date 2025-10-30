@@ -67,10 +67,10 @@ export default function SpotifyLoadingPage() {
   }, [router, updateSpotifyMusicProfile, updateMusicProfile]);
 
   return (
-    <div className="min-h-screen flex flex-col px-6 pt-3 pb-8">
+    <div className="min-h-screen flex flex-col px-6 pb-8">
       {/* Logo */}
-      <div className="mb-20 -ml-2">
-        <Logo size="md" />
+      <div className="h-16 flex items-center mb-20 -ml-2">
+        <Logo size="md" variant="type" />
       </div>
 
       {/* Content */}
@@ -88,8 +88,8 @@ export default function SpotifyLoadingPage() {
         {/* Loading spinner */}
         <div className="mb-8">
           <svg width="36" height="36" viewBox="0 0 36 36" className="animate-spin">
-            <circle cx="18" cy="18" r="16" fill="none" stroke="#B8F501" strokeWidth="4" opacity="0.25"/>
-            <path d="M18 2 A16 16 0 0 1 34 18" fill="none" stroke="#B8F501" strokeWidth="4" strokeLinecap="round"/>
+            <circle cx="18" cy="18" r="16" fill="none" stroke="#000000" strokeWidth="4" opacity="0.25"/>
+            <path d="M18 2 A16 16 0 0 1 34 18" fill="none" stroke="#000000" strokeWidth="4" strokeLinecap="round"/>
           </svg>
         </div>
       </div>

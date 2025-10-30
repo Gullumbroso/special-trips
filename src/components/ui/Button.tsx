@@ -13,10 +13,10 @@ export default function Button({
   className = "",
   ...props
 }: ButtonProps) {
-  const baseStyles = "rounded-lg px-6 py-4 text-base font-bold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed";
+  const baseStyles = "rounded-lg px-6 py-3 text-base font-bold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed";
 
   const variantStyles = {
-    primary: "bg-primary text-black hover:bg-primary/90 active:bg-primary/80",
+    primary: "bg-primary text-white hover:bg-primary/90 active:bg-primary/80",
     secondary: "bg-secondary-button text-foreground hover:bg-secondary-button/80 active:bg-secondary-button/70",
   };
 

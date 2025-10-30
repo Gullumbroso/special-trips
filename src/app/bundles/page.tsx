@@ -114,8 +114,8 @@ export default function BundlesPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="sticky top-0 bg-background px-4 py-3 z-10">
-        <Logo size="md" />
+      <div className="sticky top-0 bg-background px-4 h-16 flex items-center z-10">
+        <Logo size="md" variant="type" />
       </div>
 
       {/* Bundles Feed */}

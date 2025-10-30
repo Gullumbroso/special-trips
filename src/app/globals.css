@@ -3,7 +3,7 @@
 :root {
   --background: #ffffff;
   --foreground: #000000;
-  --primary: #B8F501;
+  --primary: #000000;
   --secondary: #0088FF;
   --secondary-button: #F2F2F7;
   --text-gray: #4A4A4A;
@@ -17,7 +17,7 @@
   --color-secondary-button: var(--secondary-button);
   --color-text-gray: var(--text-gray);
   --font-sans: var(--font-inter);
-  --font-serif: var(--font-besley);
+  --font-serif: var(--font-fraunces);
   --radius-lg: 8px;
   --shadow-lg: 0 10px 55px 0 rgb(0 0 0 / 0.25), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 }
@@ -31,23 +31,23 @@ body {
 /* Base styles for typography according to design system */
 @layer base {
   h1 {
-    font-family: var(--font-besley), serif;
+    font-family: var(--font-fraunces), serif;
     font-size: 2rem; /* 32px */
-    font-weight: 600; /* semi-bold */
+    font-weight: 700; /* bold */
     color: var(--foreground);
   }
 
   h2 {
-    font-family: var(--font-besley), serif;
+    font-family: var(--font-fraunces), serif;
     font-size: 1.5rem; /* 24px */
-    font-weight: 600; /* semi-bold */
+    font-weight: 700; /* bold */
     color: var(--foreground);
   }
 
   h3 {
-    font-family: var(--font-besley), serif;
+    font-family: var(--font-fraunces), serif;
     font-size: 1.25rem; /* 20px */
-    font-weight: 600; /* semi-bold */
+    font-weight: 700; /* bold */
     color: var(--foreground);
   }
 

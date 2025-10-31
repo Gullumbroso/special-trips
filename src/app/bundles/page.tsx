@@ -23,6 +23,7 @@ export default function BundlesPage() {
   const [navbarColorScheme, setNavbarColorScheme] = useState<ColorScheme>(COLOR_SCHEMES.WHITE_BLACK);
   const { setColorScheme } = useColorTheme();
   const bundleRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const hasRestoredScroll = useRef(false);
 
   useEffect(() => {
     // Function to add imageUrl to each bundle from its events
@@ -109,6 +110,42 @@ export default function BundlesPage() {
     }
     loadBundles();
   }, [generatedBundles, bundleColors, isHydrated, setBundleColors]);
+
+  // Restore scroll position when returning to page
+  useEffect(() => {
+    if (!loading && !hasRestoredScroll.current) {
+      const savedScrollPosition = sessionStorage.getItem('bundles-scroll-position');
+      if (savedScrollPosition) {
+        window.scrollTo(0, parseInt(savedScrollPosition, 10));
+        sessionStorage.removeItem('bundles-scroll-position');
+      }
+      hasRestoredScroll.current = true;
+    }
+  }, [loading]);
+
+  // Save scroll position before leaving page
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      sessionStorage.setItem('bundles-scroll-position', window.scrollY.toString());
+    };
+
+    // Save on any link click (for client-side navigation)
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const link = target.closest('a, button');
+      if (link) {
+        sessionStorage.setItem('bundles-scroll-position', window.scrollY.toString());
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('click', handleClick);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('click', handleClick);
+    };
+  }, []);
 
   // Scroll detection for navbar color switching
   useEffect(() => {

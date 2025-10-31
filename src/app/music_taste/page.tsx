@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense, useRef } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Button from "@/components/ui/Button";
 import Textarea from "@/components/ui/Textarea";
@@ -18,7 +18,6 @@ function MusicTasteContent() {
   const { preferences, updateMusicProfile, disconnectSpotify } = usePreferences();
   const [musicProfile, setMusicProfile] = useState("");
   const [favoriteArtists, setFavoriteArtists] = useState("");
-  const firstTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const hasSpotifyProfile = !!preferences.spotifyMusicProfile;
   const spotifyConnected = searchParams.get("spotify") === "connected";
@@ -43,18 +42,6 @@ function MusicTasteContent() {
       }
     }
   }, [preferences.musicProfile]);
-
-  // Auto-focus first textarea when page loads (only if not Spotify connected)
-  useEffect(() => {
-    if (!hasSpotifyProfile) {
-      const timer = setTimeout(() => {
-        if (firstTextareaRef.current) {
-          firstTextareaRef.current.focus();
-        }
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [hasSpotifyProfile]);
 
   const handleNext = () => {
     // Concatenate both fields into musicProfile
@@ -232,7 +219,6 @@ function MusicTasteContent() {
             </p>
 
             <Textarea
-              ref={firstTextareaRef}
               value={musicProfile}
               onChange={(e) => setMusicProfile(e.target.value)}
               placeholder="Hip hop, indie rock, electronic, underground jazz venues..."

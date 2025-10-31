@@ -13,10 +13,25 @@ interface EventCardProps {
 export default function EventCard({ event, isMinor = false }: EventCardProps) {
   const { colorScheme } = useColorTheme();
 
-  // Generate random fallback image number (1-10) consistently per event
-  const fallbackImageNumber = event.imageUrl
-    ? 0
-    : Math.floor(Math.random() * 10) + 1;
+  // Generate random fallback image number (1-10)
+  const fallbackImageNumber = Math.floor(Math.random() * 10) + 1;
+
+  // Define the fallback content to use for both missing and failed images
+  const fallbackContent = (
+    <div className="relative w-full h-48">
+      <img
+        src={`/fallback-images/${fallbackImageNumber}.png`}
+        alt={event.title}
+        className="w-full h-full object-cover absolute inset-0"
+      />
+      {/* Emoji overlay */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="bg-white/80 rounded-full p-4 shadow-lg">
+          <span className="text-5xl">{INTEREST_EMOJIS[event.interestType]}</span>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className={`mb-12 ${isMinor ? "opacity-90" : ""}`}>
@@ -26,31 +41,13 @@ export default function EventCard({ event, isMinor = false }: EventCardProps) {
       </h3>
 
       {/* Event Image */}
-      <div className={`relative w-full mb-4 rounded-lg overflow-hidden ${!event.imageUrl ? "h-48" : ""}`}>
-        {event.imageUrl ? (
-          <ImageWithFallback
-            src={event.imageUrl}
-            alt={event.title}
-            width={800}
-            height={600}
-            className="w-full h-auto rounded-lg"
-          />
-        ) : (
-          <>
-            <ImageWithFallback
-              src={`/fallback-images/${fallbackImageNumber}.png`}
-              alt={event.title}
-              fill
-              className="object-cover"
-            />
-            {/* Emoji overlay */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="bg-white/80 rounded-full p-4 shadow-lg">
-                <span className="text-5xl">{INTEREST_EMOJIS[event.interestType]}</span>
-              </div>
-            </div>
-          </>
-        )}
+      <div className="relative w-full mb-4 rounded-lg overflow-hidden">
+        <ImageWithFallback
+          src={event.imageUrl}
+          alt={event.title}
+          className="w-full h-auto rounded-lg"
+          fallback={fallbackContent}
+        />
       </div>
 
       {/* Content */}

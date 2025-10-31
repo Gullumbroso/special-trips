@@ -16,6 +16,13 @@ export default function BundleCard({ bundle, index, colorScheme }: BundleCardPro
   // Strip country from city name (e.g., "Paris, France" -> "Paris")
   const cityName = bundle.city.split(',')[0].trim();
 
+  // Fallback for bundle images
+  const fallbackContent = (
+    <div className="w-full h-full bg-gradient-to-br from-secondary/20 to-primary/20 flex items-center justify-center min-h-[300px]">
+      <span className="text-4xl">🌍</span>
+    </div>
+  );
+
   return (
     <div
       className="relative py-10 -mx-4 px-4"
@@ -32,10 +39,9 @@ export default function BundleCard({ bundle, index, colorScheme }: BundleCardPro
           <ImageWithFallback
             src={bundle.imageUrl}
             alt={bundle.title}
-            width={800}
-            height={600}
             className="w-full h-auto"
             style={{ borderRadius: '8px' }}
+            fallback={fallbackContent}
           />
         </div>
 

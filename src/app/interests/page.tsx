@@ -41,7 +41,7 @@ export default function InterestsPage() {
   const isValid = selectedInterests.length >= 2;
 
   return (
-    <PageColorWrapper colorScheme={COLOR_SCHEMES.PINK_BLUE} className="flex flex-col px-6 pb-8">
+    <PageColorWrapper colorScheme={COLOR_SCHEMES.PINK_BLUE} className="flex flex-col px-6 pb-8" applyToBody={true}>
       {/* Header with Logo and Clear Data Button */}
       <div className="flex justify-between items-center h-16 mb-12">
         <div>

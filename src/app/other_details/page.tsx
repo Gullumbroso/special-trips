@@ -22,7 +22,7 @@ export default function OtherDetailsPage() {
   };
 
   return (
-    <PageColorWrapper colorScheme={COLOR_SCHEMES.YELLOW_PURPLE} className="flex flex-col px-6 pb-8">
+    <PageColorWrapper colorScheme={COLOR_SCHEMES.YELLOW_PURPLE} className="flex flex-col px-6 pb-8" applyToBody={true}>
       {/* Header with Logo and Clear Data Button */}
       <div className="flex justify-between items-center h-16 mb-12">
         <div>

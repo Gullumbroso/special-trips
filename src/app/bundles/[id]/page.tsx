@@ -63,15 +63,7 @@ export default function BundleDetailsPage() {
 
   // Scroll to top when page loads
   useEffect(() => {
-    // Use instant behavior and ensure it happens immediately
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-
-    // Also scroll after a brief delay to handle mobile browser timing issues
-    const timeoutId = setTimeout(() => {
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-    }, 0);
-
-    return () => clearTimeout(timeoutId);
+    window.scrollTo(0, 0);
   }, [params.id]); // Scroll to top whenever the bundle ID changes
 
   // Strip country from city name (e.g., "Paris, France" -> "Paris")

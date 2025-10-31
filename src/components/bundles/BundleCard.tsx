@@ -42,7 +42,7 @@ export default function BundleCard({ bundle, index, colorScheme }: BundleCardPro
         {/* Content */}
         <div className="mt-4">
         {/* Title */}
-        <Link href={`/bundles/${index}`}>
+        <Link href={`/bundles/${index}`} scroll={false}>
           <h2 className="mb-4 leading-tight" style={{ color: colorScheme.foreground }}>
             {bundle.title}
           </h2>
@@ -84,7 +84,7 @@ export default function BundleCard({ bundle, index, colorScheme }: BundleCardPro
           className="sticky bottom-4"
           style={{ borderRadius: '8px', backgroundColor: colorScheme.background }}
         >
-          <Link href={`/bundles/${index}`} className="block">
+          <Link href={`/bundles/${index}`} scroll={false} className="block">
             <button
               className="w-full font-bold py-3 hover:opacity-90 active:opacity-80 transition-all duration-200"
               style={{

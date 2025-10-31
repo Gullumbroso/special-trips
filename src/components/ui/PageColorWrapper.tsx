@@ -27,7 +27,7 @@ export default function PageColorWrapper({
       style={{
         backgroundColor: colorScheme.background,
         color: colorScheme.foreground,
-        minHeight: "100vh",
+        minHeight: "100dvh", // Dynamic viewport height for better mobile support (fallback: 100vh)
       }}
     >
       {children}

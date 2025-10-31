@@ -273,14 +273,14 @@ export default function LoadingBundlesPage() {
   }
 
   return (
-    <PageColorWrapper colorScheme={COLOR_SCHEMES.WHITE_BLACK} className="relative max-h-screen overflow-hidden flex flex-col px-6">
+    <PageColorWrapper colorScheme={COLOR_SCHEMES.WHITE_BLACK} className="h-screen overflow-hidden flex flex-col px-6">
       {/* Logo */}
-      <div className="h-16 flex items-center mb-12">
+      <div className="h-16 flex items-center flex-shrink-0 mb-8">
         <Logo size="md" variant="type" />
       </div>
 
       {/* Main content */}
-      <div className="max-w-2xl">
+      <div className="max-w-2xl flex-shrink-0">
         <h2 className="mb-3 leading-tight">
           {isResuming ? "Still on it..." : "Working on it..."}
         </h2>
@@ -313,9 +313,12 @@ export default function LoadingBundlesPage() {
         </div>
       </div>
 
+      {/* Spacer */}
+      <div className="flex-1" />
+
       {/* Bottom gradient */}
-      <div className="fixed bottom-0 left-0 right-0" style={{ height: '512px' }}>
-        <div className="w-full h-full bg-gradient-to-t from-background to-transparent pointer-events-none" />
+      <div className="absolute bottom-0 left-0 right-0 pointer-events-none" style={{ height: '40vh' }}>
+        <div className="w-full h-full bg-gradient-to-t from-background to-transparent" />
       </div>
     </PageColorWrapper>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -15,6 +15,17 @@ export default function TripTimeframePage() {
   const router = useRouter();
   const { preferences, updateTimeframe } = usePreferences();
   const [timeframe, setTimeframe] = useState(preferences.timeframe || "");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus input when page loads
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleNext = () => {
     updateTimeframe(timeframe);
@@ -38,6 +49,7 @@ export default function TripTimeframePage() {
         </h2>
 
         <Input
+          ref={inputRef}
           value={timeframe}
           onChange={(e) => setTimeframe(e.target.value)}
           placeholder='e.g., "November 2025", "Spring 2026", "next 3 months"'

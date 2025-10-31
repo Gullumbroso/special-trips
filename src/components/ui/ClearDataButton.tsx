@@ -42,6 +42,8 @@ export default function ClearDataButton() {
         confirmLabel="Clear data"
         cancelLabel="Cancel"
         onConfirm={handleClearData}
+        backgroundColor={colorScheme.background}
+        foregroundColor={colorScheme.foreground}
       />
     </>
   );

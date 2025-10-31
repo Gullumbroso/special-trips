@@ -6,7 +6,7 @@ import { usePreferences } from "@/lib/context/PreferencesContext";
 import Logo from "@/components/ui/Logo";
 import EmptyBundlesState from "@/components/EmptyBundlesState";
 import PageColorWrapper from "@/components/ui/PageColorWrapper";
-import { COLOR_SCHEMES } from "@/lib/colorScheme";
+import { COLOR_SCHEMES, getRandomColorScheme } from "@/lib/colorScheme";
 
 // Storage key for generation ID
 const STORAGE_KEY_GENERATION_ID = 'special-trips-generation-id';
@@ -39,9 +39,15 @@ export default function LoadingBundlesPage() {
   const [isResuming, setIsResuming] = useState(false);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [loadingMessage, setLoadingMessage] = useState(LOADING_MESSAGES[0]);
+  const [currentColor, setCurrentColor] = useState(() => getRandomColorScheme().foreground);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const consecutiveFailuresRef = useRef(0);
   const MAX_CONSECUTIVE_FAILURES = 3;
+
+  // Update color whenever loading message changes
+  useEffect(() => {
+    setCurrentColor(getRandomColorScheme().foreground);
+  }, [loadingMessage]);
 
   useEffect(() => {
     // Wait for PreferencesContext to hydrate from localStorage
@@ -185,7 +191,7 @@ export default function LoadingBundlesPage() {
         consecutiveFailuresRef.current = 0;
         setErrorMessage(null);
 
-        // Rotate loading message on each poll
+        // Rotate loading message on each poll (color will update via useEffect)
         setLoadingMessage(LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)]);
 
         // Handle completion
@@ -275,27 +281,27 @@ export default function LoadingBundlesPage() {
 
       {/* Main content */}
       <div className="max-w-2xl">
-        <h1 className="mb-3 leading-tight">
+        <h2 className="mb-3 leading-tight">
           {isResuming ? "Still on it..." : "Working on it..."}
-        </h1>
+        </h2>
 
         <p className="text-base font-normal mb-6">
-          This might take a few minutes.
+          We&rsquo;re exploring Europe&rsquo;s best events to create unique trip ideas just for you.
           <br />
-          We&apos;ll let you know once we&apos;re done.
+          It might take <span className="font-semibold">5–8 minutes</span>. Grab a coffee, we&rsquo;ll notify you when it&rsquo;s ready.
         </p>
 
         {/* Spinner */}
-        <div className="mb-8">
-          <svg width="36" height="36" viewBox="0 0 36 36" className="animate-spin">
-            <circle cx="18" cy="18" r="16" fill="none" stroke="#000000" strokeWidth="4" opacity="0.25"/>
-            <path d="M18 2 A16 16 0 0 1 34 18" fill="none" stroke="#000000" strokeWidth="4" strokeLinecap="round"/>
+        <div className="mb-4 mt-8">
+          <svg width="24" height="24" viewBox="0 0 36 36" className="animate-spin" style={{ opacity: 0.85, transition: 'all 0.3s ease' }}>
+            <circle cx="18" cy="18" r="16" fill="none" stroke={currentColor} strokeWidth="4" opacity="0.25"/>
+            <path d="M18 2 A16 16 0 0 1 34 18" fill="none" stroke={currentColor} strokeWidth="4" strokeLinecap="round"/>
           </svg>
         </div>
 
         {/* Loading message */}
         <div className="relative">
-          <p className="font-bold text-base text-foreground opacity-85">
+          <p className="font-bold text-base opacity-85" style={{ color: currentColor, transition: 'color 0.3s ease' }}>
             {loadingMessage}
           </p>
           {/* Error message for debugging */}

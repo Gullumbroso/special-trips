@@ -3,6 +3,7 @@ import { formatDateRange } from "@/lib/utils";
 import { INTEREST_EMOJIS } from "@/lib/constants";
 import ImageWithFallback from "../ui/ImageWithFallback";
 import Chip from "../ui/Chip";
+import { useColorTheme } from "@/lib/context/ColorThemeContext";
 
 interface EventCardProps {
   event: Event;
@@ -10,6 +11,8 @@ interface EventCardProps {
 }
 
 export default function EventCard({ event, isMinor = false }: EventCardProps) {
+  const { colorScheme } = useColorTheme();
+
   // Generate random fallback image number (1-10) consistently per event
   const fallbackImageNumber = event.imageUrl
     ? 0
@@ -18,7 +21,7 @@ export default function EventCard({ event, isMinor = false }: EventCardProps) {
   return (
     <div className={`mb-12 ${isMinor ? "opacity-90" : ""}`}>
       {/* Event Title */}
-      <h3 className="mb-4">
+      <h3 className="mb-4" style={{ color: colorScheme.foreground }}>
         {INTEREST_EMOJIS[event.interestType]} {event.title}
       </h3>
 
@@ -60,7 +63,8 @@ export default function EventCard({ event, isMinor = false }: EventCardProps) {
               href={event.eventWebsite}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-secondary font-medium hover:text-secondary/80 transition-colors"
+              className="inline-flex items-center gap-1 font-semibold hover:opacity-70 transition-opacity"
+              style={{ color: colorScheme.foreground }}
             >
               <span>→</span>
               <span>Go to website</span>
@@ -68,7 +72,7 @@ export default function EventCard({ event, isMinor = false }: EventCardProps) {
           )}
         </div>
 
-        <p className="text-base font-normal text-black leading-relaxed">
+        <p className="text-base font-normal leading-relaxed" style={{ color: colorScheme.foreground }}>
           {event.fullDescription}
         </p>
       </div>

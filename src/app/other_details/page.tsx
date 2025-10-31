@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import Textarea from "@/components/ui/Textarea";
@@ -15,6 +15,17 @@ export default function OtherDetailsPage() {
   const router = useRouter();
   const { preferences, updateOtherPreferences } = usePreferences();
   const [otherPreferences, setOtherPreferences] = useState(preferences.otherPreferences || "");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-focus textarea when page loads
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleDone = () => {
     updateOtherPreferences(otherPreferences);
@@ -40,6 +51,7 @@ export default function OtherDetailsPage() {
         <p className="text-base font-normal mb-6">(Optional)</p>
 
         <Textarea
+          ref={textareaRef}
           value={otherPreferences}
           onChange={(e) => setOtherPreferences(e.target.value)}
           placeholder="e.g., Budget friendly, not too cold, focus on big events, I like history..."

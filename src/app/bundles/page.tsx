@@ -175,7 +175,12 @@ export default function BundlesPage() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#FFFFFF' }}>
+    <div
+      className="min-h-screen"
+      style={{
+        backgroundColor: colorSchemes[colorSchemes.length - 1]?.background || '#FFFFFF'
+      }}
+    >
       {/* Header */}
       <div
         className="sticky top-0 px-4 h-16 flex items-center z-10"
@@ -190,9 +195,8 @@ export default function BundlesPage() {
         <Logo size="md" variant="type" />
       </div>
 
-      {/* Bundles Feed */}
-      <div className="px-4 py-8">
-        {/* Summary Message */}
+      {/* Summary Message - White Section */}
+      <div className="px-4 pt-8 pb-8" style={{ backgroundColor: '#FFFFFF' }}>
         {bundles.length > 0 && (
           <div className="mb-[42px]">
             <h4 className="whitespace-pre-line" style={{ color: '#000000' }}>
@@ -200,7 +204,10 @@ export default function BundlesPage() {
             </h4>
           </div>
         )}
+      </div>
 
+      {/* Bundles Feed */}
+      <div className="px-4">
         {bundles.map((bundle, index) => (
           <div key={index} ref={(el) => { bundleRefs.current[index] = el; }}>
             <BundleCard
@@ -210,23 +217,18 @@ export default function BundlesPage() {
             />
           </div>
         ))}
+      </div>
 
-        {/* Restart CTA */}
-        <div
-          className="text-center pt-10 pb-20 -mx-4 px-4"
-          style={{
-            backgroundColor: colorSchemes[colorSchemes.length - 1]?.background || COLOR_SCHEMES.PINK_BLUE.background,
-          }}
+      {/* Restart CTA */}
+      <div className="text-center pt-10 pb-20 px-4">
+        <Button
+          variant="secondary"
+          fullWidth={false}
+          onClick={() => setShowRestartDialog(true)}
+          className="px-8"
         >
-          <Button
-            variant="secondary"
-            fullWidth={false}
-            onClick={() => setShowRestartDialog(true)}
-            className="px-8"
-          >
-            Start Over
-          </Button>
-        </div>
+          Start Over
+        </Button>
       </div>
 
       {/* Restart Confirmation Dialog */}
@@ -243,6 +245,8 @@ export default function BundlesPage() {
           localStorage.removeItem('special-trips-generation-id');
           router.push("/welcome");
         }}
+        backgroundColor={navbarColorScheme.background}
+        foregroundColor={navbarColorScheme.foreground}
       />
     </div>
   );

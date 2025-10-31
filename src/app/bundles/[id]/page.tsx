@@ -140,7 +140,7 @@ export default function BundleDetailsPage() {
 
         {/* Key Events */}
         <div className="mb-8">
-          <h4 className="mb-4 sticky top-[56px] pb-2 z-[5]" style={{ backgroundColor: colorScheme.background, color: colorScheme.foreground }}>Key Events</h4>
+          <h2 className="mb-4 sticky top-[56px] pb-2 z-[5]" style={{ backgroundColor: colorScheme.background, color: colorScheme.foreground }}>Key Events</h2>
           {bundle.keyEvents.map((event, idx) => (
             <EventCard key={idx} event={event} />
           ))}
@@ -149,9 +149,9 @@ export default function BundleDetailsPage() {
         {/* Minor Events */}
         {bundle.minorEvents.length > 0 && (
           <div>
-            <h4 className="mb-4 sticky top-[56px] pb-2 z-[5]" style={{ backgroundColor: colorScheme.background, color: colorScheme.foreground }}>
+            <h2 className="mb-4 sticky top-[56px] pb-2 z-[5]" style={{ backgroundColor: colorScheme.background, color: colorScheme.foreground }}>
               Other Interesting Events
-            </h4>
+            </h2>
             {bundle.minorEvents.map((event, idx) => (
               <EventCard key={idx} event={event} isMinor />
             ))}

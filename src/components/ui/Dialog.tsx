@@ -13,6 +13,8 @@ interface DialogProps {
   cancelLabel?: string;
   onConfirm?: () => void;
   onCancel?: () => void;
+  backgroundColor?: string;
+  foregroundColor?: string;
 }
 
 export default function Dialog({
@@ -25,6 +27,8 @@ export default function Dialog({
   cancelLabel = "Cancel",
   onConfirm,
   onCancel,
+  backgroundColor = "#FFFFFF",
+  foregroundColor = "#000000",
 }: DialogProps) {
   // Lock body scroll when dialog is open
   useEffect(() => {
@@ -59,13 +63,13 @@ export default function Dialog({
       />
 
       {/* Dialog */}
-      <div className="relative bg-white rounded-lg p-6 max-w-sm w-full shadow-lg">
-        <h2 className="mb-2">
+      <div className="relative rounded-lg p-6 max-w-sm w-full shadow-lg" style={{ backgroundColor }}>
+        <h2 className="mb-2" style={{ color: foregroundColor }}>
           {title}
         </h2>
 
         {description && (
-          <p className="text-text-gray mb-6">
+          <p className="mb-6" style={{ color: foregroundColor, opacity: 0.7 }}>
             {description}
           </p>
         )}

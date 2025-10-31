@@ -3,7 +3,7 @@
 import { useState, ReactNode } from "react";
 
 interface ImageWithFallbackProps extends React.ImgHTMLAttributes<HTMLImageElement> {
-  src: string;
+  src?: string;
   alt: string;
   fallback?: ReactNode;
 }

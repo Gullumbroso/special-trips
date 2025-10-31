@@ -20,7 +20,6 @@ function MusicTasteContent() {
   const [favoriteArtists, setFavoriteArtists] = useState("");
 
   const hasSpotifyProfile = !!preferences.spotifyMusicProfile;
-  const spotifyConnected = searchParams.get("spotify") === "connected";
   const spotifyError = searchParams.get("error");
 
   // Initialize fields from saved preferences
@@ -60,10 +59,6 @@ function MusicTasteContent() {
     setTimeout(() => {
       router.push("/trip_timeframe");
     }, 50);
-  };
-
-  const handleConnectSpotify = () => {
-    window.location.href = "/api/auth/spotify/authorize";
   };
 
   const handleReconnectSpotify = () => {

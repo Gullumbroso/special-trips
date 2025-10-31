@@ -4,7 +4,6 @@ import { formatDateRange } from "@/lib/utils";
 import { INTEREST_EMOJIS } from "@/lib/constants";
 import ImageWithFallback from "../ui/ImageWithFallback";
 import Chip from "../ui/Chip";
-import { useEffect, useRef, useState } from "react";
 import { ColorScheme } from "@/lib/colorScheme";
 
 interface BundleCardProps {
@@ -14,29 +13,8 @@ interface BundleCardProps {
 }
 
 export default function BundleCard({ bundle, index, colorScheme }: BundleCardProps) {
-  const [isSticky, setIsSticky] = useState(false);
-  const buttonRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const buttonContainer = buttonRef.current;
-    if (!buttonContainer) return;
-
-    // Use scroll listener to detect sticky state
-    const handleScroll = () => {
-      const rect = buttonContainer.getBoundingClientRect();
-      const viewportHeight = window.innerHeight;
-
-      // Button is sticky when it's at the bottom of viewport (with 16px offset for bottom-4)
-      const isAtBottom = Math.abs(rect.bottom - viewportHeight + 16) < 5;
-      setIsSticky(isAtBottom);
-    };
-
-    // Check initial state
-    handleScroll();
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  // Strip country from city name (e.g., "Paris, France" -> "Paris")
+  const cityName = bundle.city.split(',')[0].trim();
 
   return (
     <div
@@ -73,7 +51,7 @@ export default function BundleCard({ bundle, index, colorScheme }: BundleCardPro
         {/* Date and Location Chips */}
         <div className="flex gap-2 mb-4">
           <Chip foregroundColor={colorScheme.foreground}>{formatDateRange(bundle.dateRange)}</Chip>
-          <Chip foregroundColor={colorScheme.foreground}>{bundle.city}</Chip>
+          <Chip foregroundColor={colorScheme.foreground}>{cityName}</Chip>
         </div>
 
         {/* Key Events Section */}
@@ -103,8 +81,7 @@ export default function BundleCard({ bundle, index, colorScheme }: BundleCardPro
 
         {/* CTA Button - Sticky to bottom */}
         <div
-          ref={buttonRef}
-          className={`sticky bottom-4 transition-shadow duration-300 ${isSticky ? 'shadow-lg' : 'shadow-none'}`}
+          className="sticky bottom-4"
           style={{ borderRadius: '8px', backgroundColor: colorScheme.background }}
         >
           <Link href={`/bundles/${index}`} className="block">
@@ -116,7 +93,7 @@ export default function BundleCard({ bundle, index, colorScheme }: BundleCardPro
                 color: '#FFFFFF',
               }}
             >
-              → Explore {bundle.city} Trip
+              → Explore {cityName} Trip
             </button>
           </Link>
         </div>

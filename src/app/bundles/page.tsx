@@ -149,7 +149,8 @@ export default function BundlesPage() {
   const getSummaryMessage = () => {
     if (bundles.length === 0) return null;
 
-    const cities = bundles.map(b => b.city);
+    // Strip country from city names (e.g., "Paris, France" -> "Paris")
+    const cities = bundles.map(b => b.city.split(',')[0].trim());
     const uniqueCities = Array.from(new Set(cities));
 
     let cityText = "";

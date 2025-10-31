@@ -61,6 +61,14 @@ export default function BundleDetailsPage() {
     setGlobalColorScheme(colorScheme);
   }, [colorScheme, setGlobalColorScheme]);
 
+  // Scroll to top when page loads
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [params.id]); // Scroll to top whenever the bundle ID changes
+
+  // Strip country from city name (e.g., "Paris, France" -> "Paris")
+  const cityName = bundle?.city.split(',')[0].trim() || '';
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -106,7 +114,7 @@ export default function BundleDetailsPage() {
 
           <div className="flex gap-2 mb-4">
             <Chip>{formatDateRange(bundle.dateRange)}</Chip>
-            <Chip>{bundle.city}</Chip>
+            <Chip>{cityName}</Chip>
           </div>
 
           <p className="text-base font-normal leading-relaxed" style={{ color: colorScheme.foreground }}>

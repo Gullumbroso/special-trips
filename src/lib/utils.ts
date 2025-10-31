@@ -39,6 +39,11 @@ export function formatDateRange(dateRange: DateRange): string {
   const endDay = endDate.getDate();
   const year = startDate.getFullYear();
 
+  // Single day event: "Nov 17, 2025"
+  if (startMonth === endMonth && startDay === endDay && startDate.getFullYear() === endDate.getFullYear()) {
+    return `${startMonth} ${startDay}, ${year}`;
+  }
+
   // Same month: "Nov 14-19, 2025"
   if (startMonth === endMonth) {
     return `${startMonth} ${startDay}-${endDay}, ${year}`;

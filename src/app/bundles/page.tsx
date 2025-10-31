@@ -26,41 +26,73 @@ export default function BundlesPage() {
   const hasRestoredScroll = useRef(false);
 
   useEffect(() => {
-    // Function to add imageUrl to each bundle from its events
-    function addBundleImages(bundles: TripBundle[]): TripBundle[] {
-      return bundles.map((bundle) => {
-        let selectedImageUrl: string | null = null;
+    // Function to validate if an image URL can be loaded
+    async function validateImageUrl(url: string | undefined): Promise<boolean> {
+      if (!url || url.trim() === '') {
+        return false;
+      }
 
-        // Try to find an image from keyEvents first
-        if (bundle.keyEvents && bundle.keyEvents.length > 0) {
-          for (const event of bundle.keyEvents) {
-            if (event.imageUrl && event.imageUrl.trim() !== '') {
-              selectedImageUrl = event.imageUrl;
-              console.log(`Bundle "${bundle.title}" using image from key event "${event.title}": ${event.imageUrl}`);
-              break;
-            }
-          }
-        }
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(true);
+        img.onerror = () => resolve(false);
+        // Set a timeout to avoid hanging on slow/unresponsive URLs
+        const timeout = setTimeout(() => {
+          resolve(false);
+        }, 5000);
 
-        // Try minorEvents as fallback
-        if (!selectedImageUrl && bundle.minorEvents && bundle.minorEvents.length > 0) {
-          for (const event of bundle.minorEvents) {
-            if (event.imageUrl && event.imageUrl.trim() !== '') {
-              selectedImageUrl = event.imageUrl;
-              console.log(`Bundle "${bundle.title}" using image from minor event "${event.title}": ${event.imageUrl}`);
-              break;
-            }
-          }
-        }
+        img.onload = () => {
+          clearTimeout(timeout);
+          resolve(true);
+        };
+        img.onerror = () => {
+          clearTimeout(timeout);
+          resolve(false);
+        };
 
-        // If no images found in events, use random fallback
-        if (!selectedImageUrl) {
-          selectedImageUrl = getRandomFallbackImage();
-          console.log(`Bundle "${bundle.title}" has no event images, using fallback: ${selectedImageUrl}`);
-        }
-
-        return { ...bundle, imageUrl: selectedImageUrl };
+        img.src = url;
       });
+    }
+
+    // Function to add imageUrl to each bundle from its events
+    async function addBundleImages(bundles: TripBundle[]): Promise<TripBundle[]> {
+      const bundlesWithImages = await Promise.all(
+        bundles.map(async (bundle) => {
+          let selectedImageUrl: string | null = null;
+
+          // Try to find a valid image from keyEvents first
+          if (bundle.keyEvents && bundle.keyEvents.length > 0) {
+            for (const event of bundle.keyEvents) {
+              if (await validateImageUrl(event.imageUrl)) {
+                selectedImageUrl = event.imageUrl || null;
+                console.log(`Bundle "${bundle.title}" using image from key event "${event.title}": ${event.imageUrl}`);
+                break;
+              }
+            }
+          }
+
+          // Try minorEvents as fallback
+          if (!selectedImageUrl && bundle.minorEvents && bundle.minorEvents.length > 0) {
+            for (const event of bundle.minorEvents) {
+              if (await validateImageUrl(event.imageUrl)) {
+                selectedImageUrl = event.imageUrl || null;
+                console.log(`Bundle "${bundle.title}" using image from minor event "${event.title}": ${event.imageUrl}`);
+                break;
+              }
+            }
+          }
+
+          // If no valid images found in events, use random fallback
+          if (!selectedImageUrl) {
+            selectedImageUrl = getRandomFallbackImage();
+            console.log(`Bundle "${bundle.title}" has no valid event images, using fallback: ${selectedImageUrl}`);
+          }
+
+          return { ...bundle, imageUrl: selectedImageUrl };
+        })
+      );
+
+      return bundlesWithImages;
     }
 
     async function loadBundles() {
@@ -75,12 +107,12 @@ export default function BundlesPage() {
       let bundlesToUse: TripBundle[] = [];
       if (generatedBundles && generatedBundles.length > 0) {
         console.log('Using generated bundles:', generatedBundles.length);
-        bundlesToUse = addBundleImages(generatedBundles);
+        bundlesToUse = await addBundleImages(generatedBundles);
       } else {
         // Fallback to static data for development
         console.log('Using fallback sample data');
         const data = await getBundles();
-        bundlesToUse = addBundleImages(data);
+        bundlesToUse = await addBundleImages(data);
       }
 
       setBundles(bundlesToUse);

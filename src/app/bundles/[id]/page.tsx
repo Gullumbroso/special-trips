@@ -61,11 +61,6 @@ export default function BundleDetailsPage() {
     setGlobalColorScheme(colorScheme);
   }, [colorScheme, setGlobalColorScheme]);
 
-  // Scroll to top when page loads
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [params.id]); // Scroll to top whenever the bundle ID changes
-
   // Strip country from city name (e.g., "Paris, France" -> "Paris")
   const cityName = bundle?.city.split(',')[0].trim() || '';
 
